@@ -139,11 +139,11 @@ const Login = () => {
           </form>
 
           {/* Default Credentials Info */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+          {/* <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <p className="text-xs text-gray-600 text-center">
               Default credentials: <span className="font-mono">adminSatva / satva#2026</span>
             </p>
-          </div>
+          </div> */}
 
           {/* Home Page Link */}
           <div className="mt-6 pt-6 border-t border-gray-200">
