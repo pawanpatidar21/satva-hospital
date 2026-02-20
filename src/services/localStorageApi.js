@@ -1,5 +1,5 @@
 /**
- * Satva Clinic - localStorage API
+ * Sattva Clinic - localStorage API
  * Replaces backend API so the app works with frontend-only deployment.
  * All data is stored in the browser's localStorage.
  * Patient data (appointments, doctors, admin credentials) is encrypted at rest.
@@ -49,8 +49,8 @@ const DEFAULT_ADMIN = { username: 'adminSatva', password: 'satva#2026' };
 
 // Default clinic info (from backend)
 const DEFAULT_CLINIC = {
-  name: 'सत्व',
-  englishName: 'Satva',
+    name: 'सत्त्व',
+  englishName: 'Sattva',
   fullName: 'स्किन, डायबिटीज़ थायराइड & एंडोक्राइनोलोजी क्लिनीक, नीमच',
   location: 'Neemuch',
   contact: { phone1: '9131960802', phone2: '9340633407' },

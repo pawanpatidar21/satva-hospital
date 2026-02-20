@@ -1,4 +1,4 @@
-# Deploy Satva Clinic (frontend only)
+# Deploy Sattva Clinic (frontend only)
 
 No backend required. Data is stored in the browser (localStorage).
 

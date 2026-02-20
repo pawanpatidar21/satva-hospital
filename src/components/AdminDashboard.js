@@ -446,7 +446,7 @@ const AdminDashboard = () => {
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Admin Dashboard</h1>
-                <p className="text-xs sm:text-sm text-white/90 mt-0.5 sm:mt-1 hidden sm:block">Satva Clinic Management System</p>
+                <p className="text-xs sm:text-sm text-white/90 mt-0.5 sm:mt-1 hidden sm:block">Sattva Clinic Management System</p>
               </div>
             </div>
             <button

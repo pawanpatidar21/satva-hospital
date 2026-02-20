@@ -68,7 +68,7 @@ const Login = () => {
               <FaLock className="text-4xl text-primary-600" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Login</h1>
-            <p className="text-gray-600">Satva Clinic Management</p>
+            <p className="text-gray-600">Sattva Clinic Management</p>
           </div>
 
           {/* Login Form */}

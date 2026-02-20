@@ -373,12 +373,12 @@ const LandingPage = () => {
               <FaHospital className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white" />
             </div>
             <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-extrabold text-white mb-3 sm:mb-4 hindi-text drop-shadow-2xl animate-slide-up bg-gradient-to-r from-white via-white to-white/80 bg-clip-text text-transparent">
-              सत्व
+              सत्त्व
             </h1>
             <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4 px-4">
               <div className="h-0.5 sm:h-1 w-8 sm:w-12 md:w-16 bg-gradient-to-r from-transparent via-white to-white rounded-full"></div>
               <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-light text-white/95 tracking-wide sm:tracking-widest animate-slide-up whitespace-nowrap">
-                Satva Clinic
+                Sattva Clinic
               </p>
               <div className="h-0.5 sm:h-1 w-8 sm:w-12 md:w-16 bg-gradient-to-l from-transparent via-white to-white rounded-full"></div>
             </div>
@@ -504,11 +504,11 @@ const LandingPage = () => {
           
           <div className="bg-white/80 backdrop-blur-md rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 shadow-2xl border border-white/50 transform hover:scale-[1.01] sm:hover:scale-[1.02] transition-all duration-300">
             <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-700 text-center leading-relaxed hindi-text font-medium">
-              सत्व क्लिनिक एक आधुनिक चिकित्सा सुविधा है जो त्वचा रोग, मधुमेह, थायराइड और एंडोक्राइनोलॉजी में विशेषज्ञता प्रदान करती है।
+              सत्त्व क्लिनिक एक आधुनिक चिकित्सा सुविधा है जो त्वचा रोग, मधुमेह, थायराइड और एंडोक्राइनोलॉजी में विशेषज्ञता प्रदान करती है।
               हमारा लक्ष्य उच्च गुणवत्ता वाली चिकित्सा सेवाएं प्रदान करना है।
             </p>
             <p className="text-sm sm:text-base md:text-lg text-gray-600 text-center mt-4 sm:mt-6 leading-relaxed">
-              Satva Clinic is a modern medical facility specializing in Skin Diseases, Diabetes, Thyroid, and Endocrinology. 
+              Sattva Clinic is a modern medical facility specializing in Skin Diseases, Diabetes, Thyroid, and Endocrinology. 
               Our goal is to provide high-quality medical services with expert care and compassion.
             </p>
           </div>
@@ -959,7 +959,7 @@ const LandingPage = () => {
                   <FaHospital className="text-2xl sm:text-3xl text-white" />
                 </div>
                 <h3 className="text-3xl sm:text-4xl font-extrabold hindi-text bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
-                  सत्व
+                  सत्त्व
                 </h3>
               </div>
               <p className="text-gray-300 text-sm sm:text-base md:text-lg leading-relaxed">
@@ -1039,7 +1039,7 @@ const LandingPage = () => {
           <div className="border-t border-white/10 pt-6 sm:pt-8">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
               <p className="text-gray-400 text-center sm:text-left text-sm sm:text-base">
-                &copy; {new Date().getFullYear()} <span className="font-bold text-white">Satva Clinic</span>. All rights reserved.
+                &copy; {new Date().getFullYear()} <span className="font-bold text-white">Sattva Clinic</span>. All rights reserved.
               </p>
               <div className="flex items-center gap-2 text-gray-400 text-sm sm:text-base">
                 <FaHeartbeat className="text-red-400 animate-pulse text-base sm:text-lg" />

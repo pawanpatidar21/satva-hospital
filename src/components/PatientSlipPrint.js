@@ -68,14 +68,14 @@ const PatientSlipPrint = ({ appointment, onClose }) => {
           className="patient-slip-print relative z-10 bg-white rounded-xl shadow-2xl p-6 overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Satva watermark - visible on screen and print */}
+          {/* Sattva watermark - visible on screen and print */}
           <div
             className="slip-watermark absolute inset-0 flex items-center justify-center pointer-events-none select-none"
             style={{ transform: 'rotate(-25deg)' }}
             aria-hidden
           >
             <div className="text-center">
-              <span className="block text-7xl font-black text-gray-700 tracking-wider">सत्व</span>
+              <span className="block text-7xl font-black text-gray-700 tracking-wider">सत्त्व</span>
               <span className="block text-4xl font-bold text-gray-500 tracking-[0.3em] mt-1">SATVA</span>
             </div>
           </div>
@@ -104,10 +104,10 @@ const PatientSlipPrint = ({ appointment, onClose }) => {
             {/* Clinic header with logo area */}
             <div className="text-center border-b-2 border-teal-600 pb-3">
               <div className="flex items-center justify-center gap-2 mb-1">
-                <span className="text-3xl font-black text-teal-700">सत्व</span>
+                <span className="text-3xl font-black text-teal-700">सत्त्व</span>
               </div>
               <h1 className="text-lg font-bold text-gray-900">
-                {clinic?.englishName || clinic?.name || 'Satva'} Clinic
+                {clinic?.englishName || clinic?.name || 'Sattva'} Clinic
               </h1>
               {clinic?.fullName && (
                 <p className="text-xs text-gray-600 mt-1">{clinic.fullName}</p>
