@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "exportedAt": "2026-02-20T14:41:08.003Z",
+  "appointments": [
+    {
+      "id": 1,
+      "name": "Ashish Kumar Mishra",
+      "phone": "7000756184",
+      "email": "gopi.mynt@perennialsys.com",
+      "service": "डायबिटीज़, थायराइड",
+      "date": "2026-02-19",
+      "time": "09:00",
+      "period": "AM",
+      "dateTime": "2026-02-19 09:00 AM",
+      "message": "",
+      "status": "confirmed",
+      "notes": "",
+      "createdAt": "2026-02-18T19:28:58.256Z",
+      "updatedAt": "2026-02-18T19:31:38.716Z"
+    },
+    {
+      "id": 2,
+      "name": "Pawan",
+      "phone": "9898989898",
+      "email": "pawan@gmail.com",
+      "service": "दाद, खाद, खुजली",
+      "date": "2026-02-19",
+      "time": "09:30",
+      "period": "AM",
+      "dateTime": "2026-02-19 09:30 AM",
+      "message": "",
+      "status": "pending",
+      "notes": "",
+      "createdAt": "2026-02-18T19:34:45.231Z",
+      "updatedAt": "2026-02-18T19:34:45.231Z"
+    },
+    {
+      "id": 3,
+      "name": "Rahul",
+      "phone": "9617926392",
+      "email": "rahul@gmail.com",
+      "service": "एलर्जी, एक्जिमा, सोरियसिस",
+      "date": "2026-02-19",
+      "time": "09:15",
+      "period": "AM",
+      "dateTime": "2026-02-19 09:15 AM",
+      "message": "",
+      "status": "pending",
+      "notes": "",
+      "createdAt": "2026-02-18T19:50:33.039Z",
+      "updatedAt": "2026-02-18T19:52:43.791Z"
+    },
+    {
+      "id": 4,
+      "name": "Pooja",
+      "phone": "6363363363",
+      "email": "pooja@gmail.com",
+      "service": "दाद, खाद, खुजली",
+      "date": "2026-02-19",
+      "time": "09:00",
+      "period": "AM",
+      "dateTime": "2026-02-19 09:00 AM",
+      "message": "",
+      "status": "pending",
+      "notes": "",
+      "createdAt": "2026-02-18T19:59:14.973Z",
+      "updatedAt": "2026-02-18T19:59:14.973Z"
+    },
+    {
+      "id": 5,
+      "name": "Gopi",
+      "phone": "7000756184",
+      "email": "gopi@perennialsys.com",
+      "service": "डायबिटीज़, थायराइड",
+      "date": "2026-02-20",
+      "time": "12:00",
+      "period": "PM",
+      "dateTime": "2026-02-20 12:00 PM",
+      "message": "",
+      "status": "pending",
+      "notes": "",
+      "createdAt": "2026-02-20T14:40:13.739Z",
+      "updatedAt": "2026-02-20T14:40:13.739Z"
+    }
+  ],
+  "doctors": [
+    {
+      "id": 1,
+      "name": "डॉ. दीक्षा पाटीदार",
+      "englishName": "Dr. Diksha Patidar",
+      "qualifications": "एमबीबीएस, एमडी मेडिसिन (AIIMS नई दिल्ली)",
+      "specialization": "डीआरएनबी एंडोक्राइनोलॉजी (नई दिल्ली)",
+      "title": "हार्मान रोग विशेषज्ञ",
+      "type": "Endocrinologist",
+      "experience": "",
+      "image": "/doctors/dr-deeksha.png"
+    },
+    {
+      "id": 2,
+      "name": "डॉ. चेतन कुमार पाटीदार",
+      "englishName": "Dr. Chetan Kumar Patidar",
+      "qualifications": "एमबीबीएस एम.डी. (चर्म रोग, कुष्ठ रोग एवं यौन रोग विशेषज्ञ)",
+      "specialization": "सफदरजंग हॉस्पिटल, नई दिल्ली",
+      "experience": "पूर्व चिकित्सक ईएसआईसी मेडीकल कॉलेज, फरीदाबाद",
+      "type": "Dermatologist",
+      "image": "/doctors/dr-chetan.png"
+    }
+  ],
+  "nextAppointmentId": 6,
+  "nextDoctorId": 3,
+  "adminCredentials": null
+}
