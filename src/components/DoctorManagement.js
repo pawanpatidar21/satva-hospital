@@ -213,7 +213,7 @@ const DoctorManagement = () => {
                   value={formData.englishName}
                   onChange={handleInputChange}
                   className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none"
-                  placeholder="Dr. Deeksha Patidar"
+                  placeholder="Dr. Diksha Patidar"
                   required
                 />
               </div>

@@ -76,7 +76,7 @@ const DEFAULT_DOCTORS = [
   {
     id: 1,
     name: 'डॉ. दीक्षा पाटीदार',
-    englishName: 'Dr. Deeksha Patidar',
+    englishName: 'Dr. Diksha Patidar',
     qualifications: 'एमबीबीएस, एमडी मेडिसिन (AIIMS नई दिल्ली)',
     specialization: 'डीआरएनबी एंडोक्राइनोलॉजी (नई दिल्ली)',
     title: 'हार्मान रोग विशेषज्ञ',
