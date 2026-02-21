@@ -81,7 +81,7 @@ const DEFAULT_DOCTORS = [
     specialization: 'डीआरएनबी एंडोक्राइनोलॉजी (नई दिल्ली)',
     title: 'हार्मान रोग विशेषज्ञ',
     type: 'Endocrinologist',
-    image: `${process.env.PUBLIC_URL || ''}/doctors/dr-Diksha.png`,
+    image: `${process.env.PUBLIC_URL || ''}/doctors/dr-diksha.png`,
   },
   {
     id: 2,
