@@ -22,7 +22,7 @@ Output: `build/` (static files).
 ## Admin login (after deploy)
 
 - URL: `https://your-domain.com/admin/login`
-- **Username:** `adminSatva`
-- **Password:** `satva#2026`
+- **Username:** `adminSattva`
+- **Password:** `Sattva#2026`
 
 Change these in `src/services/localStorageApi.js` (DEFAULT_ADMIN) and rebuild if needed.

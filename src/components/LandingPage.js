@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-toastify';
+import SeoHead from './SeoHead';
 import {
   getClinic,
   getDoctors,
@@ -11,7 +12,17 @@ import {
   getServiceDoctorType,
   getBookedTimeSlotsForDoctorType,
 } from '../services/localStorageApi';
-import { FaPhone, FaStethoscope, FaUserMd, FaCalendarAlt, FaCheckCircle, FaArrowDown, FaHeartbeat, FaShieldAlt, FaAward, FaHospital } from 'react-icons/fa';
+import { FaPhone, FaStethoscope, FaUserMd, FaCalendarAlt, FaCheckCircle, FaArrowDown, FaHeartbeat, FaShieldAlt, FaAward, FaHospital, FaCalculator } from 'react-icons/fa';
+import BMICalculator from './BMICalculator';
+import DiabeticCalculator from './DiabeticCalculator';
+import BSACalculator from './BSACalculator';
+import IdealWeightCalculator from './IdealWeightCalculator';
+import WaterIntakeCalculator from './WaterIntakeCalculator';
+import ThyroidTSHCalculator from './ThyroidTSHCalculator';
+import CalorieBMRCalculator from './CalorieBMRCalculator';
+import WaistHipCalculator from './WaistHipCalculator';
+import FitzpatrickQuiz from './FitzpatrickQuiz';
+import HealthMeasureGuide from './HealthMeasureGuide';
 import { appointmentSchema } from '../schemas/validation';
 
 const LandingPage = () => {
@@ -315,9 +326,11 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" role="document">
+      <SeoHead clinic={clinicData} />
+      <main id="main-content">
       {/* Enhanced Hero Section - Responsive */}
-      <section className="relative min-h-[100vh] sm:min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-700 overflow-hidden py-8 sm:py-0">
+      <section aria-label="Welcome to Sattva Clinic" className="relative min-h-[100vh] sm:min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-700 overflow-hidden py-8 sm:py-0">
         {/* Enhanced Animated Background with Medical Theme */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-transparent"></div>
         
@@ -413,6 +426,13 @@ const LandingPage = () => {
               <FaStethoscope className="text-lg sm:text-xl md:text-2xl group-hover:scale-125 group-hover:rotate-12 transition-all duration-300" />
               <span className="whitespace-nowrap">Our Services</span>
             </a>
+            <a 
+              href="#health-tools" 
+              className="group w-full sm:w-auto px-6 sm:px-8 md:px-10 py-3 sm:py-4 md:py-5 bg-white/10 backdrop-blur-md text-white border-2 border-white/40 rounded-full font-bold text-base sm:text-lg md:text-xl hover:bg-white/25 transform hover:-translate-y-2 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 shadow-xl hover:shadow-2xl"
+            >
+              <FaCalculator className="text-lg sm:text-xl md:text-2xl group-hover:scale-125 group-hover:rotate-12 transition-all duration-300" />
+              <span className="whitespace-nowrap">Health Tools</span>
+            </a>
           </div>
 
           {/* Quick Stats - Responsive */}
@@ -438,6 +458,7 @@ const LandingPage = () => {
           {/* Scroll Indicator - Responsive */}
           <a 
             href="#contact" 
+            aria-label="Scroll to contact section"
             className="absolute bottom-4 sm:bottom-6 md:bottom-8 left-1/2 transform -translate-x-1/2 text-white/90 hover:text-white animate-bounce flex flex-col items-center gap-1 sm:gap-2 group"
           >
             <span className="text-xs sm:text-sm font-medium hidden sm:block">Scroll Down</span>
@@ -457,7 +478,7 @@ const LandingPage = () => {
       </section>
 
       {/* Enhanced Contact Bar - Responsive */}
-      <section id="contact" className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white py-3 sm:py-4 md:py-5 sticky top-0 z-50 shadow-2xl border-b border-white/10 backdrop-blur-md">
+      <header id="contact" role="banner" aria-label="Contact information" className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white py-3 sm:py-4 md:py-5 sticky top-0 z-50 shadow-2xl border-b border-white/10 backdrop-blur-md">
         <div className="container mx-auto px-3 sm:px-4">
           <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-6 md:gap-10">
             <a 
@@ -481,10 +502,10 @@ const LandingPage = () => {
             </a>
           </div>
         </div>
-      </section>
+      </header>
 
       {/* Enhanced About Section - Responsive */}
-      <section className="relative py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-br from-white via-gray-50 to-primary-50 overflow-hidden">
+      <section aria-labelledby="about-heading" className="relative py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-br from-white via-gray-50 to-primary-50 overflow-hidden">
         {/* Background Decorations - Responsive */}
         <div className="absolute inset-0">
           <div className="absolute top-10 right-4 sm:top-20 sm:right-20 w-32 h-32 sm:w-48 sm:h-48 md:w-64 md:h-64 bg-primary-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
@@ -496,7 +517,7 @@ const LandingPage = () => {
             <div className="inline-block p-3 sm:p-4 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-xl sm:rounded-2xl mb-4 sm:mb-6 shadow-lg">
               <FaHospital className="text-3xl sm:text-4xl md:text-5xl text-primary-600" />
             </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-gray-900 mb-4 sm:mb-6 bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent px-4">
+            <h2 id="about-heading" className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-gray-900 mb-4 sm:mb-6 bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent px-4">
               About Our Clinic
             </h2>
             <div className="w-24 sm:w-32 h-0.5 sm:h-1 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 mx-auto rounded-full mb-6 sm:mb-8"></div>
@@ -516,7 +537,7 @@ const LandingPage = () => {
       </section>
 
       {/* Enhanced Doctors Section - Responsive */}
-      <section id="doctors" className="relative py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-br from-gray-50 via-white to-primary-50 overflow-hidden">
+      <section id="doctors" aria-labelledby="doctors-heading" className="relative py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-br from-gray-50 via-white to-primary-50 overflow-hidden">
         {/* Background Decorations - Responsive */}
         <div className="absolute inset-0">
           <div className="absolute top-5 left-4 sm:top-10 sm:left-10 w-36 h-36 sm:w-56 sm:h-56 md:w-72 md:h-72 bg-primary-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15"></div>
@@ -528,7 +549,7 @@ const LandingPage = () => {
             <div className="inline-block p-4 sm:p-5 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-2xl sm:rounded-3xl mb-6 sm:mb-8 shadow-xl">
               <FaUserMd className="text-4xl sm:text-5xl md:text-6xl text-primary-600" />
             </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-gray-900 mb-4 sm:mb-6 bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent px-4">
+            <h2 id="doctors-heading" className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-gray-900 mb-4 sm:mb-6 bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent px-4">
               Our Expert Doctors
             </h2>
             <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
@@ -559,7 +580,10 @@ const LandingPage = () => {
                         <div className="relative w-full h-full max-w-[180px] max-h-[220px] sm:max-w-[220px] sm:max-h-[260px] md:max-w-[280px] md:max-h-[200px] lg:max-w-none lg:max-h-none lg:w-full lg:h-full rounded-xl sm:rounded-2xl overflow-hidden bg-gray-200 group-hover:scale-[1.02] transition-transform duration-500">
                           <img
                             src={doctor.image}
-                            alt={doctor.englishName}
+                            alt={`${doctor.englishName} - ${doctor.type}`}
+                            loading="lazy"
+                            width="300"
+                            height="360"
                             className="w-full h-full object-cover object-top"
                           />
                         </div>
@@ -601,7 +625,7 @@ const LandingPage = () => {
       </section>
 
       {/* Enhanced Services Section - Responsive */}
-      <section id="services" className="relative py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-br from-white via-gray-50 to-secondary-50 overflow-hidden">
+      <section id="services" aria-labelledby="services-heading" className="relative py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-br from-white via-gray-50 to-secondary-50 overflow-hidden">
         {/* Background Decorations - Responsive */}
         <div className="absolute inset-0">
           <div className="absolute top-10 left-4 sm:top-20 sm:left-20 w-48 h-48 sm:w-72 sm:h-72 md:w-96 md:h-96 bg-primary-200 rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
@@ -613,7 +637,7 @@ const LandingPage = () => {
             <div className="inline-block p-4 sm:p-5 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-2xl sm:rounded-3xl mb-6 sm:mb-8 shadow-xl">
               <FaStethoscope className="text-4xl sm:text-5xl md:text-6xl text-primary-600" />
             </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-gray-900 mb-4 sm:mb-6 hindi-text bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent px-4">
+            <h2 id="services-heading" className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-gray-900 mb-4 sm:mb-6 hindi-text bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent px-4">
               उपलब्ध सुविधाएँ
             </h2>
             <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
@@ -684,8 +708,55 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Health Tools Section - BMI & Diabetic Calculators */}
+      <section id="health-tools" aria-labelledby="health-tools-heading" className="relative py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-br from-gray-50 via-white to-primary-50 overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-10 right-4 sm:top-20 sm:right-20 w-40 h-40 sm:w-56 sm:h-56 md:w-72 md:h-72 bg-primary-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+          <div className="absolute bottom-10 left-4 sm:bottom-20 sm:left-20 w-40 h-40 sm:w-56 sm:h-56 md:w-72 md:h-72 bg-secondary-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+        </div>
+        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10 sm:mb-12 md:mb-16">
+            <div className="inline-block p-4 sm:p-5 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-2xl sm:rounded-3xl mb-6 sm:mb-8 shadow-xl">
+              <FaCalculator className="text-4xl sm:text-5xl md:text-6xl text-primary-600" />
+            </div>
+            <h2 id="health-tools-heading" className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-4 sm:mb-6 bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent px-4">
+              Health Tools
+            </h2>
+            <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+              <div className="h-0.5 sm:h-1 w-8 sm:w-12 md:w-16 bg-gradient-to-r from-transparent to-primary-500 rounded-full"></div>
+              <div className="w-24 sm:w-32 h-0.5 sm:h-1 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 rounded-full"></div>
+              <div className="h-0.5 sm:h-1 w-8 sm:w-12 md:w-16 bg-gradient-to-l from-transparent to-primary-500 rounded-full"></div>
+            </div>
+            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto px-4">
+              Use these calculators for quick health checks. For accurate assessment, book an appointment with our specialists.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8 md:gap-10 max-w-7xl mx-auto">
+            <BMICalculator />
+            <DiabeticCalculator />
+            <BSACalculator />
+            <IdealWeightCalculator />
+            <WaterIntakeCalculator />
+            <ThyroidTSHCalculator />
+            <CalorieBMRCalculator />
+            <WaistHipCalculator />
+            <FitzpatrickQuiz />
+          </div>
+          <HealthMeasureGuide />
+          <div className="text-center mt-8 sm:mt-10">
+            <a 
+              href="#appointment" 
+              className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-colors shadow-lg hover:shadow-xl"
+            >
+              <FaCalendarAlt />
+              Book Appointment with Specialist
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Enhanced Appointment Section - Responsive */}
-      <section id="appointment" className="relative py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-700 overflow-hidden">
+      <section id="appointment" aria-labelledby="appointment-heading" className="relative py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-700 overflow-hidden">
         {/* Background Decorations - Responsive */}
         <div className="absolute inset-0">
           <div className="absolute top-10 left-4 sm:top-20 sm:left-20 w-48 h-48 sm:w-72 sm:h-72 md:w-96 md:h-96 bg-white/10 rounded-full mix-blend-multiply filter blur-3xl"></div>
@@ -704,7 +775,7 @@ const LandingPage = () => {
             <div className="inline-block p-4 sm:p-5 bg-white/20 backdrop-blur-md rounded-2xl sm:rounded-3xl mb-6 sm:mb-8 shadow-xl border border-white/30">
               <FaCalendarAlt className="text-4xl sm:text-5xl md:text-6xl text-white" />
             </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-center text-white mb-4 sm:mb-6 drop-shadow-2xl px-4">
+            <h2 id="appointment-heading" className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-center text-white mb-4 sm:mb-6 drop-shadow-2xl px-4">
               Book an Appointment
             </h2>
             <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
@@ -942,8 +1013,10 @@ const LandingPage = () => {
         </div>
       </section>
 
+      </main>
+
       {/* Enhanced Footer - Responsive */}
-      <footer className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white py-10 sm:py-12 md:py-16 overflow-hidden">
+      <footer role="contentinfo" aria-label="Site footer" className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white py-10 sm:py-12 md:py-16 overflow-hidden">
         {/* Background Decorations - Responsive */}
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 w-48 h-48 sm:w-72 sm:h-72 md:w-96 md:h-96 bg-primary-500/5 rounded-full mix-blend-multiply filter blur-3xl"></div>
@@ -1023,6 +1096,13 @@ const LandingPage = () => {
                 >
                   <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-secondary-400 rounded-full group-hover:scale-150 transition-transform"></div>
                   <span className="text-base sm:text-lg font-medium group-hover:text-secondary-300 transition-colors">Services</span>
+                </a>
+                <a 
+                  href="#health-tools" 
+                  className="group flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-white/5 backdrop-blur-sm rounded-lg sm:rounded-xl border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300 transform hover:translate-x-1 sm:hover:translate-x-2"
+                >
+                  <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-amber-400 rounded-full group-hover:scale-150 transition-transform"></div>
+                  <span className="text-base sm:text-lg font-medium group-hover:text-amber-300 transition-colors">Health Tools</span>
                 </a>
                 <a 
                   href="#appointment" 

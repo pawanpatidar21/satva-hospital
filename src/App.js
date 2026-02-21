@@ -1,4 +1,5 @@
 import React from 'react';
+import { HelmetProvider } from 'react-helmet-async';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -11,9 +12,13 @@ import './App.css';
 
 function App() {
   return (
+    <HelmetProvider>
     <AuthProvider>
       <Router>
         <div className="App">
+          <a href="#main-content" className="skip-link">
+            Skip to main content
+          </a>
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/admin/login" element={<Login />} />
@@ -42,6 +47,7 @@ function App() {
         </div>
       </Router>
     </AuthProvider>
+    </HelmetProvider>
   );
 }
 

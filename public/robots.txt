@@ -1,0 +1,9 @@
+# Sattva Clinic - robots.txt
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /admin/login
+Disallow: /admin/dashboard
+
+# Sitemap
+Sitemap: https://Sattva-hospital-nmh.vercel.app/sitemap.xml

@@ -76,7 +76,7 @@ const PatientSlipPrint = ({ appointment, onClose }) => {
           >
             <div className="text-center">
               <span className="block text-7xl font-black text-gray-700 tracking-wider">सत्त्व</span>
-              <span className="block text-4xl font-bold text-gray-500 tracking-[0.3em] mt-1">SATVA</span>
+              <span className="block text-4xl font-bold text-gray-500 tracking-[0.3em] mt-1">Sattva</span>
             </div>
           </div>
 

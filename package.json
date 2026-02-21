@@ -1,5 +1,5 @@
 {
-  "name": "satva-frontend",
+  "name": "Sattva-frontend",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
@@ -9,6 +9,7 @@
     "crypto-js": "^4.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-helmet-async": "^2.0.5",
     "react-hook-form": "^7.68.0",
     "react-icons": "^4.12.0",
     "react-router-dom": "^6.20.1",

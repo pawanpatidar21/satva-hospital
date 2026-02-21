@@ -1,4 +1,5 @@
 import React from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -48,7 +49,12 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-700 flex items-center justify-center px-4 py-8">
+    <>
+      <Helmet>
+        <title>Admin Login - Sattva Clinic</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
+      <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-700 flex items-center justify-center px-4 py-8">
       <div className="max-w-md w-full">
         {/* Back to Home Link */}
         <div className="mb-4">
@@ -141,7 +147,7 @@ const Login = () => {
           {/* Default Credentials Info */}
           {/* <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <p className="text-xs text-gray-600 text-center">
-              Default credentials: <span className="font-mono">adminSatva / satva#2026</span>
+              Default credentials: <span className="font-mono">adminSatva / Satva#2026</span>
             </p>
           </div> */}
 
@@ -158,6 +164,7 @@ const Login = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

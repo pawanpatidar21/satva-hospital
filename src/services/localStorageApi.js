@@ -9,11 +9,11 @@ import CryptoJS from 'crypto-js';
 import * as XLSX from 'xlsx';
 
 const STORAGE_KEYS = {
-  APPOINTMENTS: 'satva_appointments',
-  DOCTORS: 'satva_doctors',
-  ADMIN_CREDENTIALS: 'satva_admin_credentials', // optional override
-  NEXT_APPOINTMENT_ID: 'satva_next_appointment_id',
-  NEXT_DOCTOR_ID: 'satva_next_doctor_id',
+  APPOINTMENTS: 'Sattva_appointments',
+  DOCTORS: 'Sattva_doctors',
+  ADMIN_CREDENTIALS: 'Sattva_admin_credentials', // optional override
+  NEXT_APPOINTMENT_ID: 'Sattva_next_appointment_id',
+  NEXT_DOCTOR_ID: 'Sattva_next_doctor_id',
 };
 
 // Keys that contain sensitive patient/admin data - encrypted at rest
@@ -24,7 +24,7 @@ const ENCRYPTED_KEYS = [
 ];
 
 // Encryption key: set REACT_APP_ENCRYPTION_KEY in .env for production
-const ENCRYPTION_KEY = process.env.REACT_APP_ENCRYPTION_KEY || 'satva-clinic-patient-data-2026';
+const ENCRYPTION_KEY = process.env.REACT_APP_ENCRYPTION_KEY || 'Sattva-clinic-patient-data-2026';
 
 function encrypt(text) {
   try {
@@ -44,12 +44,12 @@ function decrypt(ciphertext) {
   }
 }
 
-// Default admin credentials (change via satva_admin_credentials in localStorage if needed)
-const DEFAULT_ADMIN = { username: 'adminSatva', password: 'satva#2026' };
+// Default admin credentials (change via Sattva_admin_credentials in localStorage if needed)
+const DEFAULT_ADMIN = { username: 'adminSatva', password: 'Satva#2026' };
 
 // Default clinic info (from backend)
 const DEFAULT_CLINIC = {
-    name: 'सत्त्व',
+  name: 'सत्त्व',
   englishName: 'Sattva',
   fullName: 'स्किन, डायबिटीज़ थायराइड & एंडोक्राइनोलोजी क्लिनीक, नीमच',
   location: 'Neemuch',
@@ -81,7 +81,7 @@ const DEFAULT_DOCTORS = [
     specialization: 'डीआरएनबी एंडोक्राइनोलॉजी (नई दिल्ली)',
     title: 'हार्मान रोग विशेषज्ञ',
     type: 'Endocrinologist',
-    image: `${process.env.PUBLIC_URL || ''}/doctors/dr-deeksha.png`,
+    image: `${process.env.PUBLIC_URL || ''}/doctors/dr-Diksha.png`,
   },
   {
     id: 2,
@@ -96,7 +96,7 @@ const DEFAULT_DOCTORS = [
 ];
 
 // Simple in-memory token for "session" (no real JWT needed)
-const LOCAL_ADMIN_TOKEN = 'satva_local_admin_token';
+const LOCAL_ADMIN_TOKEN = 'Sattva_local_admin_token';
 
 function getJson(key, defaultValue) {
   try {
@@ -440,7 +440,7 @@ export function downloadAppointmentsExcel(filters = {}) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `satva-appointments-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  a.download = `Sattva-appointments-${new Date().toISOString().slice(0, 10)}.xlsx`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -456,7 +456,7 @@ export function downloadDayBackup(date) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `satva-backup-day-${date}.xlsx`;
+  a.download = `Sattva-backup-day-${date}.xlsx`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -476,7 +476,7 @@ export function downloadMonthBackup(year, month) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `satva-backup-month-${year}-${String(month).padStart(2, '0')}.xlsx`;
+  a.download = `Sattva-backup-month-${year}-${String(month).padStart(2, '0')}.xlsx`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -509,7 +509,7 @@ export function downloadFullBackup() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `satva-full-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `Sattva-full-backup-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }

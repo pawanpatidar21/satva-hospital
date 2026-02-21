@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-toastify';
@@ -436,6 +437,10 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50">
+      <Helmet>
+        <title>Admin Dashboard - Sattva Clinic</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       {/* Enhanced Header - Responsive */}
       <header className="bg-gradient-to-r from-primary-600 via-primary-700 to-secondary-700 shadow-xl">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-5 md:py-6">

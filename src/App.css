@@ -1,3 +1,20 @@
+/* Skip link for accessibility & SEO */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background: white;
+  color: #0d9488;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 10px;
