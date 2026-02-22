@@ -1,17 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'react-toastify';
 import SeoHead from './SeoHead';
-import {
-  getClinic,
-  getDoctors,
-  getServices,
-  checkAppointment,
-  createAppointment,
-  getServiceDoctorType,
-  getBookedTimeSlotsForDoctorType,
-} from '../services/localStorageApi';
+import { getClinic, getDoctors, getServices } from '../services/localStorageApi';
 import { FaPhone, FaStethoscope, FaUserMd, FaCalendarAlt, FaCheckCircle, FaArrowDown, FaHeartbeat, FaShieldAlt, FaAward, FaHospital, FaCalculator } from 'react-icons/fa';
 import BMICalculator from './BMICalculator';
 import DiabeticCalculator from './DiabeticCalculator';
@@ -23,63 +12,17 @@ import CalorieBMRCalculator from './CalorieBMRCalculator';
 import WaistHipCalculator from './WaistHipCalculator';
 import FitzpatrickQuiz from './FitzpatrickQuiz';
 import HealthMeasureGuide from './HealthMeasureGuide';
-import { appointmentSchema } from '../schemas/validation';
 
 const LandingPage = () => {
   const [clinicData, setClinicData] = useState(null);
   const [doctors, setDoctors] = useState([]);
   const [services, setServices] = useState(null);
-  const [existingAppointment, setExistingAppointment] = useState(null);
-  
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    watch,
-    reset,
-    setValue
-  } = useForm({
-    resolver: zodResolver(appointmentSchema),
-    defaultValues: {
-      name: '',
-      phone: '',
-      email: '',
-      service: '',
-      date: '',
-      time: '',
-      period: 'AM',
-      message: ''
-    }
-  });
-
-  const watchedDate = watch('date');
-  const watchedTime = watch('time');
-  const watchedPhone = watch('phone');
-  const watchedService = watch('service');
 
   useEffect(() => {
     fetchClinicData();
     fetchDoctors();
     fetchServices();
   }, []);
-
-  // Check for existing appointments when phone, date, or time changes (localStorage)
-  useEffect(() => {
-    const checkExistingAppointments = async () => {
-      if (watchedPhone && watchedPhone.length >= 10 && watchedDate && watchedTime) {
-        try {
-          const data = await checkAppointment(watchedPhone, watchedDate, watchedTime);
-          setExistingAppointment(data.hasExisting ? data.appointment : null);
-        } catch {
-          setExistingAppointment(null);
-        }
-      } else {
-        setExistingAppointment(null);
-      }
-    };
-    const timeoutId = setTimeout(checkExistingAppointments, 500);
-    return () => clearTimeout(timeoutId);
-  }, [watchedPhone, watchedDate, watchedTime]);
 
   const fetchClinicData = async () => {
     try {
@@ -109,222 +52,6 @@ const LandingPage = () => {
   };
 
   // Get available time slots based on selected date
-  const getAvailableTimeSlots = () => {
-    const timeSlots = [
-      { value: '09:00', label: '9:00 AM', hour: 9, minute: 0 },
-      { value: '09:15', label: '9:15 AM', hour: 9, minute: 15 },
-      { value: '09:30', label: '9:30 AM', hour: 9, minute: 30 },
-      { value: '09:45', label: '9:45 AM', hour: 9, minute: 45 },
-      { value: '10:00', label: '10:00 AM', hour: 10, minute: 0 },
-      { value: '10:15', label: '10:15 AM', hour: 10, minute: 15 },
-      { value: '10:30', label: '10:30 AM', hour: 10, minute: 30 },
-      { value: '10:45', label: '10:45 AM', hour: 10, minute: 45 },
-      { value: '11:00', label: '11:00 AM', hour: 11, minute: 0 },
-      { value: '11:15', label: '11:15 AM', hour: 11, minute: 15 },
-      { value: '11:30', label: '11:30 AM', hour: 11, minute: 30 },
-      { value: '12:00', label: '12:00 PM (Noon)', hour: 12, minute: 0 },
-      { value: '12:15', label: '12:15 PM', hour: 12, minute: 15 },
-      { value: '12:30', label: '12:30 PM', hour: 12, minute: 30 },
-      { value: '12:45', label: '12:45 PM', hour: 12, minute: 45 },
-      { value: '13:00', label: '1:00 PM', hour: 13, minute: 0 },
-      { value: '13:15', label: '1:15 PM', hour: 13, minute: 15 },
-      { value: '13:30', label: '1:30 PM', hour: 13, minute: 30 },
-      { value: '13:45', label: '1:45 PM', hour: 13, minute: 45 },
-      { value: '14:00', label: '2:00 PM', hour: 14, minute: 0 },
-      { value: '14:15', label: '2:15 PM', hour: 14, minute: 15 },
-      { value: '14:30', label: '2:30 PM', hour: 14, minute: 30 },
-      { value: '15:00', label: '3:00 PM', hour: 15, minute: 0 },
-      { value: '15:15', label: '3:15 PM', hour: 15, minute: 15 },
-      { value: '15:30', label: '3:30 PM', hour: 15, minute: 30 },
-      { value: '15:45', label: '3:45 PM', hour: 15, minute: 45 },
-      { value: '16:00', label: '4:00 PM', hour: 16, minute: 0 },
-      { value: '16:15', label: '4:15 PM', hour: 16, minute: 15 },
-      { value: '16:30', label: '4:30 PM', hour: 16, minute: 30 },
-      { value: '16:45', label: '4:45 PM', hour: 16, minute: 45 },
-      { value: '17:00', label: '5:00 PM', hour: 17, minute: 0 },
-      { value: '17:15', label: '5:15 PM', hour: 17, minute: 15 },
-      { value: '17:30', label: '5:30 PM', hour: 17, minute: 30 },
-      { value: '17:45', label: '5:45 PM', hour: 17, minute: 45 },
-      { value: '18:00', label: '6:00 PM', hour: 18, minute: 0 },
-    ];
-
-    if (!watchedDate) {
-      return timeSlots; // Show all if no date selected
-    }
-
-    // Exclude slots already booked for this doctor type (derma/endo have separate slot pools)
-    const doctorType = getServiceDoctorType(watchedService);
-    const bookedForDoctorType = doctorType ? getBookedTimeSlotsForDoctorType(watchedDate, doctorType) : [];
-    const excludeBooked = (slots) =>
-      bookedForDoctorType.length > 0 ? slots.filter((s) => !bookedForDoctorType.includes(s.value)) : slots;
-
-    const selectedDate = new Date(watchedDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    selectedDate.setHours(0, 0, 0, 0);
-
-    // If selected date is in the future, show times (minus booked for this doctor type)
-    if (selectedDate > today) {
-      return excludeBooked(timeSlots);
-    }
-
-    // If selected date is today, filter out past times
-    if (selectedDate.getTime() === today.getTime()) {
-      const now = new Date();
-      const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
-      
-      return excludeBooked(
-        timeSlots.filter(slot => {
-          // If it's past 12:00 PM (noon), don't show morning slots (9:00 AM - 11:30 AM)
-          if (currentHour >= 12) {
-            // Only show afternoon and evening slots (12:00 PM onwards)
-            return slot.hour >= 12;
-          }
-          // If it's before 12:00 PM, show all times from now onwards (including future morning times)
-          if (slot.hour > currentHour) {
-            return true;
-          }
-          if (slot.hour === currentHour && slot.minute >= currentMinute) {
-            return true;
-          }
-          return false;
-        })
-      );
-    }
-
-    return excludeBooked(timeSlots);
-  };
-
-  // Update period when time changes
-  useEffect(() => {
-    if (watchedTime) {
-      const hour = parseInt(watchedTime.split(':')[0]);
-      setValue('period', hour >= 12 ? 'PM' : 'AM');
-    }
-  }, [watchedTime, setValue]);
-
-  // Reset time when date or service changes if it's no longer valid
-  useEffect(() => {
-    if (watchedDate && watchedTime) {
-      const availableSlots = getAvailableTimeSlotsForDate(watchedDate, watchedService);
-      const isTimeValid = availableSlots.some(slot => slot.value === watchedTime);
-      if (!isTimeValid) {
-        setValue('time', '');
-      }
-    }
-  }, [watchedDate, watchedTime, watchedService, setValue]);
-
-  // Helper function to get slots for a specific date (used for time validation)
-  const getAvailableTimeSlotsForDate = (dateValue, serviceValue) => {
-    const timeSlots = [
-      { value: '09:00', label: '9:00 AM', hour: 9, minute: 0 },
-      { value: '09:15', label: '9:15 AM', hour: 9, minute: 15 },
-      { value: '09:30', label: '9:30 AM', hour: 9, minute: 30 },
-      { value: '09:45', label: '9:45 AM', hour: 9, minute: 45 },
-      { value: '10:00', label: '10:00 AM', hour: 10, minute: 0 },
-      { value: '10:15', label: '10:15 AM', hour: 10, minute: 15 },
-      { value: '10:30', label: '10:30 AM', hour: 10, minute: 30 },
-      { value: '10:45', label: '10:45 AM', hour: 10, minute: 45 },
-      { value: '11:00', label: '11:00 AM', hour: 11, minute: 0 },
-      { value: '11:15', label: '11:15 AM', hour: 11, minute: 15 },
-      { value: '11:30', label: '11:30 AM', hour: 11, minute: 30 },
-      { value: '12:00', label: '12:00 PM (Noon)', hour: 12, minute: 0 },
-      { value: '12:15', label: '12:15 PM', hour: 12, minute: 15 },
-      { value: '12:30', label: '12:30 PM', hour: 12, minute: 30 },
-      { value: '12:45', label: '12:45 PM', hour: 12, minute: 45 },
-      { value: '13:00', label: '1:00 PM', hour: 13, minute: 0 },
-      { value: '13:15', label: '1:15 PM', hour: 13, minute: 15 },
-      { value: '13:30', label: '1:30 PM', hour: 13, minute: 30 },
-      { value: '13:45', label: '1:45 PM', hour: 13, minute: 45 },
-      { value: '14:00', label: '2:00 PM', hour: 14, minute: 0 },
-      { value: '14:15', label: '2:15 PM', hour: 14, minute: 15 },
-      { value: '14:30', label: '2:30 PM', hour: 14, minute: 30 },
-      { value: '15:00', label: '3:00 PM', hour: 15, minute: 0 },
-      { value: '15:15', label: '3:15 PM', hour: 15, minute: 15 },
-      { value: '15:30', label: '3:30 PM', hour: 15, minute: 30 },
-      { value: '15:45', label: '3:45 PM', hour: 15, minute: 45 },
-      { value: '16:00', label: '4:00 PM', hour: 16, minute: 0 },
-      { value: '16:15', label: '4:15 PM', hour: 16, minute: 15 },
-      { value: '16:30', label: '4:30 PM', hour: 16, minute: 30 },
-      { value: '16:45', label: '4:45 PM', hour: 16, minute: 45 },
-      { value: '17:00', label: '5:00 PM', hour: 17, minute: 0 },
-      { value: '17:15', label: '5:15 PM', hour: 17, minute: 15 },
-      { value: '17:30', label: '5:30 PM', hour: 17, minute: 30 },
-      { value: '17:45', label: '5:45 PM', hour: 17, minute: 45 },
-      { value: '18:00', label: '6:00 PM', hour: 18, minute: 0 },
-    ];
-
-    if (!dateValue) {
-      return timeSlots;
-    }
-
-    const doctorType = getServiceDoctorType(serviceValue);
-    const bookedForDoctorType = doctorType ? getBookedTimeSlotsForDoctorType(dateValue, doctorType) : [];
-    const excludeBooked = (slots) =>
-      bookedForDoctorType.length > 0 ? slots.filter((s) => !bookedForDoctorType.includes(s.value)) : slots;
-
-    const selectedDate = new Date(dateValue);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    selectedDate.setHours(0, 0, 0, 0);
-
-    if (selectedDate > today) {
-      return excludeBooked(timeSlots);
-    }
-
-    if (selectedDate.getTime() === today.getTime()) {
-      const now = new Date();
-      const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
-      
-      return excludeBooked(
-        timeSlots.filter(slot => {
-          if (currentHour >= 12) {
-            return slot.hour >= 12;
-          }
-          if (slot.hour > currentHour) {
-            return true;
-          }
-          if (slot.hour === currentHour && slot.minute >= currentMinute) {
-            return true;
-          }
-          return false;
-        })
-      );
-    }
-
-    return excludeBooked(timeSlots);
-  };
-
-  const onSubmit = async (data) => {
-    try {
-      if (data.time && !data.period) {
-        const hour = parseInt(data.time.split(':')[0]);
-        data.period = hour >= 12 ? 'PM' : 'AM';
-      }
-      await createAppointment(data);
-      toast.success('Appointment request submitted successfully! We will contact you soon.', {
-        position: 'top-right',
-        autoClose: 5000,
-      });
-      reset();
-    } catch (error) {
-      console.error('Error submitting appointment:', error);
-      if (error.response?.status === 409 && error.response?.data?.duplicate) {
-        toast.warning(
-          error.response.data.error || 'You already have an appointment for this date and time. Please choose a different time.',
-          { position: 'top-right', autoClose: 6000 }
-        );
-      } else {
-        toast.error(
-          error.response?.data?.error || 'Failed to submit appointment. Please try again.',
-          { position: 'top-right', autoClose: 5000 }
-        );
-      }
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50" role="document">
       <SeoHead clinic={clinicData} />
@@ -755,261 +482,47 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Enhanced Appointment Section - Responsive */}
+      {/* Appointment / Contact to Book Section - booking done from admin */}
       <section id="appointment" aria-labelledby="appointment-heading" className="relative py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-700 overflow-hidden">
-        {/* Background Decorations - Responsive */}
         <div className="absolute inset-0">
           <div className="absolute top-10 left-4 sm:top-20 sm:left-20 w-48 h-48 sm:w-72 sm:h-72 md:w-96 md:h-96 bg-white/10 rounded-full mix-blend-multiply filter blur-3xl"></div>
           <div className="absolute bottom-10 right-4 sm:bottom-20 sm:right-20 w-48 h-48 sm:w-72 sm:h-72 md:w-96 md:h-96 bg-white/10 rounded-full mix-blend-multiply filter blur-3xl"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-36 h-36 sm:w-56 sm:h-56 md:w-72 md:h-72 bg-white/5 rounded-full"></div>
         </div>
-        
-        {/* Floating Medical Icons - Responsive */}
         <div className="absolute inset-0 overflow-hidden">
           <FaCalendarAlt className="absolute top-16 right-8 sm:top-32 sm:right-32 text-white/5 text-5xl sm:text-7xl md:text-9xl hidden sm:block" />
           <FaStethoscope className="absolute bottom-16 left-8 sm:bottom-32 sm:left-32 text-white/5 text-4xl sm:text-6xl md:text-8xl hidden sm:block" />
         </div>
-        
-        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
-          <div className="text-center mb-8 sm:mb-10 md:mb-12">
-            <div className="inline-block p-4 sm:p-5 bg-white/20 backdrop-blur-md rounded-2xl sm:rounded-3xl mb-6 sm:mb-8 shadow-xl border border-white/30">
-              <FaCalendarAlt className="text-4xl sm:text-5xl md:text-6xl text-white" />
-            </div>
-            <h2 id="appointment-heading" className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-center text-white mb-4 sm:mb-6 drop-shadow-2xl px-4">
-              Book an Appointment
-            </h2>
-            <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-              <div className="h-0.5 sm:h-1 w-8 sm:w-12 md:w-16 bg-gradient-to-r from-transparent to-white rounded-full"></div>
-              <div className="w-24 sm:w-32 h-0.5 sm:h-1 bg-white rounded-full"></div>
-              <div className="h-0.5 sm:h-1 w-8 sm:w-12 md:w-16 bg-gradient-to-l from-transparent to-white rounded-full"></div>
-            </div>
-            <p className="text-base sm:text-lg md:text-xl text-white/90 max-w-2xl mx-auto px-4">
-              Schedule your visit with our expert medical professionals
-            </p>
+        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl text-center">
+          <div className="inline-block p-4 sm:p-5 bg-white/20 backdrop-blur-md rounded-2xl sm:rounded-3xl mb-6 sm:mb-8 shadow-xl border border-white/30">
+            <FaCalendarAlt className="text-4xl sm:text-5xl md:text-6xl text-white" />
           </div>
-          
-          <form onSubmit={handleSubmit(onSubmit)} className="bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 md:p-10 lg:p-12 space-y-6 sm:space-y-8 border-2 border-white/50 relative overflow-hidden">
-            {/* Decorative Elements - Responsive */}
-            <div className="absolute top-0 right-0 w-32 h-32 sm:w-48 sm:h-48 md:w-64 md:h-64 bg-gradient-to-br from-primary-100/30 to-transparent rounded-bl-full"></div>
-            <div className="absolute bottom-0 left-0 w-32 h-32 sm:w-48 sm:h-48 md:w-64 md:h-64 bg-gradient-to-tr from-secondary-100/30 to-transparent rounded-tr-full"></div>
-            <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
-              <div>
-                <label htmlFor="name" className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 sm:mb-3 uppercase tracking-wide">
-                  Name / नाम <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  {...register('name')}
-                  className={`w-full px-4 sm:px-5 py-3 sm:py-4 border-2 rounded-lg sm:rounded-xl focus:ring-2 sm:focus:ring-4 focus:ring-primary-200 outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md text-sm sm:text-base ${
-                    errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'
-                  }`}
-                  placeholder="Enter your name"
-                />
-                {errors.name && (
-                  <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>
-                )}
-              </div>
-              <div>
-                <label htmlFor="phone" className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 sm:mb-3 uppercase tracking-wide">
-                  Phone / फोन <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="tel"
-                  id="phone"
-                  {...register('phone')}
-                  className={`w-full px-4 sm:px-5 py-3 sm:py-4 border-2 rounded-lg sm:rounded-xl focus:ring-2 sm:focus:ring-4 focus:ring-primary-200 outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md text-sm sm:text-base ${
-                    errors.phone ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'
-                  }`}
-                  placeholder="Enter your phone number"
-                />
-                {errors.phone && (
-                  <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
-              <div>
-                <label htmlFor="email" className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 sm:mb-3 uppercase tracking-wide">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  {...register('email')}
-                  className={`w-full px-4 sm:px-5 py-3 sm:py-4 border-2 rounded-lg sm:rounded-xl focus:ring-2 sm:focus:ring-4 focus:ring-primary-200 outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md text-sm sm:text-base ${
-                    errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'
-                  }`}
-                  placeholder="Enter your email"
-                />
-                {errors.email && (
-                  <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
-                )}
-              </div>
-              <div>
-                <label htmlFor="service" className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 sm:mb-3 uppercase tracking-wide">
-                  Service / सेवा <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="service"
-                  {...register('service')}
-                  className={`w-full px-4 sm:px-5 py-3 sm:py-4 border-2 rounded-lg sm:rounded-xl focus:ring-2 sm:focus:ring-4 focus:ring-primary-200 outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md text-sm sm:text-base ${
-                    errors.service ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'
-                  }`}
-                >
-                  <option value="">Select a service</option>
-                  <optgroup label="Endocrinology">
-                    {services?.endocrinology?.map((service, index) => (
-                      <option key={`endo-${index}`} value={service}>{service}</option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Dermatology">
-                    {services?.dermatology?.map((service, index) => (
-                      <option key={`derm-${index}`} value={service}>{service}</option>
-                    ))}
-                  </optgroup>
-                </select>
-                {errors.service && (
-                  <p className="text-red-500 text-xs mt-1">{errors.service.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
-              <div>
-                <label htmlFor="date" className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 sm:mb-3 uppercase tracking-wide">
-                  Preferred Date <span className="text-red-500">*</span>
-                  <span className="text-xs text-gray-500 ml-2 normal-case">(dd/mm/yyyy)</span>
-                </label>
-                <input
-                  type="date"
-                  id="date"
-                  {...register('date')}
-                  min={new Date().toISOString().split('T')[0]}
-                  className={`w-full px-4 sm:px-5 py-3 sm:py-4 border-2 rounded-lg sm:rounded-xl focus:ring-2 sm:focus:ring-4 focus:ring-primary-200 outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md text-sm sm:text-base ${
-                    errors.date ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'
-                  }`}
-                />
-                {watchedDate && (
-                  <p className="text-xs text-gray-600 mt-1 sm:mt-2 font-medium">
-                    Selected: {new Date(watchedDate).toLocaleDateString('en-GB', { 
-                      day: '2-digit', 
-                      month: '2-digit', 
-                      year: 'numeric' 
-                    })}
-                  </p>
-                )}
-                {errors.date && (
-                  <p className="text-red-500 text-xs mt-1">{errors.date.message}</p>
-                )}
-              </div>
-              <div>
-                <label htmlFor="time" className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 sm:mb-3 uppercase tracking-wide">
-                  Preferred Time <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="time"
-                  {...register('time')}
-                  disabled={!watchedDate}
-                  className={`w-full px-4 sm:px-5 py-3 sm:py-4 border-2 rounded-lg sm:rounded-xl focus:ring-2 sm:focus:ring-4 focus:ring-primary-200 outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md disabled:bg-gray-100 disabled:cursor-not-allowed text-sm sm:text-base ${
-                    errors.time || existingAppointment ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'
-                  }`}
-                >
-                  <option value="">
-                    {!watchedDate ? 'Select date first' : 'Select Preferred Time'}
-                  </option>
-                  {(() => {
-                    const availableSlots = getAvailableTimeSlots();
-                    const morningSlots = availableSlots.filter(s => s.hour < 12);
-                    const afternoonSlots = availableSlots.filter(s => s.hour >= 12 && s.hour < 15);
-                    const eveningSlots = availableSlots.filter(s => s.hour >= 15);
-                    
-                    return (
-                      <>
-                        {morningSlots.length > 0 && (
-                          <optgroup label="Morning (9:00 AM - 11:30 AM)">
-                            {morningSlots.map(slot => (
-                              <option key={slot.value} value={slot.value}>{slot.label}</option>
-                            ))}
-                          </optgroup>
-                        )}
-                        {afternoonSlots.length > 0 && (
-                          <optgroup label="Afternoon (12:00 PM - 2:30 PM)">
-                            {afternoonSlots.map(slot => (
-                              <option key={slot.value} value={slot.value}>{slot.label}</option>
-                            ))}
-                          </optgroup>
-                        )}
-                        {eveningSlots.length > 0 && (
-                          <optgroup label="Evening (3:00 PM - 6:00 PM)">
-                            {eveningSlots.map(slot => (
-                              <option key={slot.value} value={slot.value}>{slot.label}</option>
-                            ))}
-                          </optgroup>
-                        )}
-                      </>
-                    );
-                  })()}
-                </select>
-                {existingAppointment && (
-                  <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-xs text-yellow-800 font-medium">
-                      ⚠️ You already have an appointment for this date and time. Please choose a different time or contact us to modify your existing appointment.
-                    </p>
-                  </div>
-                )}
-                <p className="text-xs text-gray-600 mt-1 sm:mt-2 font-medium">
-                  {watchedDate && getAvailableTimeSlots().length === 0 
-                    ? 'No available time slots for today. Please select a future date.'
-                    : 'Time slots available in 15-minute intervals'}
-                </p>
-                {errors.time && (
-                  <p className="text-red-500 text-xs mt-1">{errors.time.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="relative z-10">
-              <label htmlFor="message" className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 sm:mb-3 uppercase tracking-wide">
-                Message / संदेश (Optional)
-              </label>
-              <textarea
-                id="message"
-                {...register('message')}
-                rows="4"
-                className={`w-full px-4 sm:px-5 py-3 sm:py-4 border-2 rounded-lg sm:rounded-xl focus:ring-2 sm:focus:ring-4 focus:ring-primary-200 outline-none transition-all duration-300 resize-none bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md text-sm sm:text-base ${
-                  errors.message ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'
-                }`}
-                placeholder="Any additional information..."
-              ></textarea>
-              {errors.message && (
-                <p className="text-red-500 text-xs mt-1">{errors.message.message}</p>
-              )}
-            </div>
-
-            <div className="relative z-10">
-              <button 
-                type="submit" 
-                disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-primary-600 via-primary-700 to-secondary-600 text-white py-4 sm:py-5 rounded-lg sm:rounded-xl font-bold text-base sm:text-lg md:text-xl shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 sm:hover:-translate-y-2 hover:scale-[1.01] sm:hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 relative overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          <h2 id="appointment-heading" className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-4 sm:mb-6 drop-shadow-2xl">
+            Book an Appointment
+          </h2>
+          <p className="text-base sm:text-lg md:text-xl text-white/90 mb-8 sm:mb-10">
+            Call us or visit the clinic to schedule your visit with our specialists.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+            <a
+              href={`tel:${clinicData?.contact?.phone1 || '9131960802'}`}
+              className="inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-white text-primary-700 rounded-xl font-bold text-base sm:text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300"
+            >
+              <FaPhone className="text-xl sm:text-2xl" />
+              <span>{clinicData?.contact?.phone1 || '9131960802'}</span>
+            </a>
+            {clinicData?.contact?.phone2 && (
+              <a
+                href={`tel:${clinicData.contact.phone2}`}
+                className="inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-white/20 backdrop-blur-md text-white border-2 border-white/50 rounded-xl font-bold text-base sm:text-lg hover:bg-white/30 transition-all duration-300"
               >
-                <span className="absolute inset-0 bg-gradient-to-r from-primary-700 to-secondary-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span className="relative z-10 whitespace-nowrap">Submitting...</span>
-                  </>
-                ) : (
-                  <>
-                    <FaCalendarAlt className="relative z-10 text-lg sm:text-xl md:text-2xl group-hover:scale-125 group-hover:rotate-12 transition-all duration-300" />
-                    <span className="relative z-10 whitespace-nowrap">Submit Appointment Request</span>
-                    <div className="absolute -right-1 -top-1 sm:-right-2 sm:-top-2 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-green-400 rounded-full animate-ping"></div>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+                <FaPhone className="text-xl sm:text-2xl" />
+                <span>{clinicData.contact.phone2}</span>
+              </a>
+            )}
+          </div>
+          <p className="text-white/80 text-sm sm:text-base mt-6">
+            We will help you fix a convenient date and time for your appointment.
+          </p>
         </div>
       </section>
 

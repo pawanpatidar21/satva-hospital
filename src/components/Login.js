@@ -1,6 +1,6 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-toastify';
@@ -9,9 +9,8 @@ import { FaLock, FaUser, FaSignInAlt, FaHome, FaArrowLeft } from 'react-icons/fa
 import { loginSchema } from '../schemas/validation';
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
-
   const {
     register,
     handleSubmit,
@@ -47,6 +46,18 @@ const Login = () => {
       });
     }
   };
+
+  // If already logged in, do not show login page — go to dashboard. Only after logout can they see login again.
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-700">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent" />
+      </div>
+    );
+  }
+  if (isAuthenticated) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
 
   return (
     <>

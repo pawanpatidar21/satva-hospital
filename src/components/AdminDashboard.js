@@ -12,6 +12,8 @@ import {
   getAppointmentStats,
   updateAppointment,
   deleteAppointment as deleteAppointmentApi,
+  createAppointment as createAppointmentApi,
+  getServices,
   downloadAppointmentsExcel,
   downloadDayBackup,
   downloadMonthBackup,
@@ -20,7 +22,7 @@ import {
   getServiceDoctorType,
   getBookedTimeSlotsForDoctorType,
 } from '../services/localStorageApi';
-import { appointmentUpdateSchema } from '../schemas/validation';
+import { appointmentUpdateSchema, appointmentCreateSchema } from '../schemas/validation';
 import { 
   FaSignOutAlt, 
   FaCalendarAlt, 
@@ -42,7 +44,8 @@ import {
   FaFileExcel,
   FaPrint,
   FaFileDownload,
-  FaUpload
+  FaUpload,
+  FaPlus
 } from 'react-icons/fa';
 
 const AdminDashboard = () => {
@@ -63,6 +66,8 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('appointments'); // 'appointments' or 'doctors'
   const [restoring, setRestoring] = useState(false);
   const restoreInputRef = useRef(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [services, setServices] = useState(null);
 
   const {
     register: registerUpdate,
@@ -85,11 +90,45 @@ const AdminDashboard = () => {
   const watchedUpdateDate = watchUpdate('date');
   const watchedUpdateTime = watchUpdate('time');
 
+  const {
+    register: registerAdd,
+    control: controlAdd,
+    handleSubmit: handleAddSubmit,
+    formState: { errors: addErrors, isSubmitting: isAdding },
+    reset: resetAdd,
+    watch: watchAdd,
+    setValue: setAddValue
+  } = useForm({
+    resolver: zodResolver(appointmentCreateSchema),
+    defaultValues: {
+      name: '',
+      phone: '',
+      email: '',
+      service: '',
+      date: '',
+      time: '',
+      period: 'AM',
+      message: '',
+      notes: '',
+      status: 'pending'
+    }
+  });
+
+  const watchedAddDate = watchAdd('date');
+  const watchedAddTime = watchAdd('time');
+  const watchedAddService = watchAdd('service');
+
   useEffect(() => {
     fetchAppointments();
     fetchStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
+
+  useEffect(() => {
+    if (showAddModal && !services) {
+      getServices().then((data) => setServices(data));
+    }
+  }, [showAddModal, services]);
 
   // Reset to page 1 when filter or search changes
   useEffect(() => {
@@ -318,13 +357,76 @@ const AdminDashboard = () => {
     setShowModal(true);
   };
 
-  // Update period when time changes
+  const openAddModal = () => {
+    resetAdd({
+      name: '',
+      phone: '',
+      email: '',
+      service: '',
+      date: '',
+      time: '',
+      period: 'AM',
+      message: '',
+      notes: '',
+      status: 'pending'
+    });
+    setShowAddModal(true);
+  };
+
+  const onAddAppointment = async (data) => {
+    try {
+      const payload = {
+        name: data.name,
+        phone: data.phone,
+        email: data.email || '',
+        service: data.service,
+        date: data.date,
+        time: data.time,
+        period: data.period || 'AM',
+        message: data.message || '',
+        notes: data.notes || '',
+        status: data.status || 'pending'
+      };
+      await createAppointmentApi(payload);
+      toast.success('Appointment added successfully', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+      setShowAddModal(false);
+      fetchAppointments();
+      fetchStats();
+    } catch (error) {
+      console.error('Error adding appointment:', error);
+      const msg = error.response?.data?.error || 'Failed to add appointment. This slot may already be booked.';
+      toast.error(msg, { position: 'top-right', autoClose: 4000 });
+    }
+  };
+
+  // Update period when time changes (edit modal)
   useEffect(() => {
     if (watchedUpdateTime) {
       const hour = parseInt(watchedUpdateTime.split(':')[0]);
       setUpdateValue('period', hour >= 12 ? 'PM' : 'AM');
     }
   }, [watchedUpdateTime, setUpdateValue]);
+
+  // Update period when add form time changes
+  useEffect(() => {
+    if (watchedAddTime) {
+      const hour = parseInt(watchedAddTime.split(':')[0]);
+      setAddValue('period', hour >= 12 ? 'PM' : 'AM');
+    }
+  }, [watchedAddTime, setAddValue]);
+
+  // Reset add time when date or service changes if slot no longer available
+  useEffect(() => {
+    if (watchedAddDate && watchedAddTime && watchedAddService) {
+      const doctorType = getServiceDoctorType(watchedAddService);
+      const availableSlots = getAvailableTimeSlots(watchedAddDate, doctorType, null);
+      const isTimeValid = availableSlots.some(slot => slot.value === watchedAddTime);
+      if (!isTimeValid) setAddValue('time', '');
+    }
+  }, [watchedAddDate, watchedAddTime, watchedAddService, setAddValue]);
 
   // Reset time when date changes if it's no longer valid
   useEffect(() => {
@@ -608,6 +710,13 @@ const AdminDashboard = () => {
                 </button>
               ))}
               <button
+                onClick={openAddModal}
+                className="ml-auto px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-semibold text-xs sm:text-sm bg-primary-600 hover:bg-primary-700 text-white transition-all flex items-center gap-1.5"
+              >
+                <FaPlus className="text-sm" />
+                Add Appointment
+              </button>
+              <button
                 onClick={() => {
                   downloadAppointmentsExcel(filter !== 'all' ? { status: filter } : {});
                   toast.success('Appointments exported to Excel (date-wise sheets)', {
@@ -615,7 +724,7 @@ const AdminDashboard = () => {
                     autoClose: 3000,
                   });
                 }}
-                className="ml-auto px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-semibold text-xs sm:text-sm bg-green-600 hover:bg-green-700 text-white transition-all flex items-center gap-1.5"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-semibold text-xs sm:text-sm bg-green-600 hover:bg-green-700 text-white transition-all flex items-center gap-1.5"
               >
                 <FaFileExcel className="text-sm" />
                 Export Excel
@@ -1077,6 +1186,208 @@ const AdminDashboard = () => {
           appointment={slipAppointment}
           onClose={() => setSlipAppointment(null)}
         />
+      )}
+
+      {/* Add Appointment Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-xl sm:rounded-2xl md:rounded-3xl shadow-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto transform animate-slide-up border-2 border-gray-100">
+            <div className="bg-gradient-to-r from-primary-600 to-secondary-600 p-4 sm:p-5 md:p-6 rounded-t-xl sm:rounded-t-2xl">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Add Appointment</h2>
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="p-1.5 sm:p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                >
+                  <FaTimesCircle className="text-white text-lg sm:text-xl" />
+                </button>
+              </div>
+            </div>
+            <form onSubmit={handleAddSubmit(onAddAppointment)} className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Patient Name <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    {...registerAdd('name')}
+                    className={`w-full px-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base ${
+                      addErrors.name ? 'border-red-500' : 'border-gray-300 focus:border-primary-500'
+                    }`}
+                    placeholder="Full name"
+                  />
+                  {addErrors.name && <p className="text-xs text-red-500 mt-1">{addErrors.name.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Phone <span className="text-red-500">*</span></label>
+                  <input
+                    type="tel"
+                    {...registerAdd('phone')}
+                    className={`w-full px-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base ${
+                      addErrors.phone ? 'border-red-500' : 'border-gray-300 focus:border-primary-500'
+                    }`}
+                    placeholder="10-digit phone"
+                  />
+                  {addErrors.phone && <p className="text-xs text-red-500 mt-1">{addErrors.phone.message}</p>}
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Email</label>
+                  <input
+                    type="email"
+                    {...registerAdd('email')}
+                    className={`w-full px-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base ${
+                      addErrors.email ? 'border-red-500' : 'border-gray-300 focus:border-primary-500'
+                    }`}
+                    placeholder="Optional"
+                  />
+                  {addErrors.email && <p className="text-xs text-red-500 mt-1">{addErrors.email.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Service <span className="text-red-500">*</span></label>
+                  <select
+                    {...registerAdd('service')}
+                    className={`w-full px-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base ${
+                      addErrors.service ? 'border-red-500' : 'border-gray-300 focus:border-primary-500'
+                    }`}
+                  >
+                    <option value="">Select a service</option>
+                    {services?.endocrinology && (
+                      <optgroup label="Endocrinology">
+                        {services.endocrinology.map((s, i) => (
+                          <option key={`endo-${i}`} value={s}>{s}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {services?.dermatology && (
+                      <optgroup label="Dermatology">
+                        {services.dermatology.map((s, i) => (
+                          <option key={`derm-${i}`} value={s}>{s}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                  {addErrors.service && <p className="text-xs text-red-500 mt-1">{addErrors.service.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Date <span className="text-red-500">*</span></label>
+                  <input
+                    type="date"
+                    {...registerAdd('date')}
+                    className={`w-full px-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base ${
+                      addErrors.date ? 'border-red-500' : 'border-gray-300 focus:border-primary-500'
+                    }`}
+                  />
+                  {addErrors.date && <p className="text-xs text-red-500 mt-1">{addErrors.date.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Time <span className="text-red-500">*</span></label>
+                  <Controller
+                    name="time"
+                    control={controlAdd}
+                    render={({ field }) => {
+                      const doctorType = getServiceDoctorType(watchedAddService);
+                      const availableSlots = getAvailableTimeSlots(watchedAddDate, doctorType, null);
+                      const morningSlots = availableSlots.filter(s => s.hour < 12);
+                      const afternoonSlots = availableSlots.filter(s => s.hour >= 12 && s.hour < 15);
+                      const eveningSlots = availableSlots.filter(s => s.hour >= 15);
+                      const timeOptions = [];
+                      if (morningSlots.length > 0) timeOptions.push({ label: 'Morning (9:00 AM - 11:30 AM)', options: morningSlots.map(s => ({ value: s.value, label: s.label })) });
+                      if (afternoonSlots.length > 0) timeOptions.push({ label: 'Afternoon (12:00 PM - 2:30 PM)', options: afternoonSlots.map(s => ({ value: s.value, label: s.label })) });
+                      if (eveningSlots.length > 0) timeOptions.push({ label: 'Evening (3:00 PM - 6:00 PM)', options: eveningSlots.map(s => ({ value: s.value, label: s.label })) });
+                      return (
+                        <SearchableSelect
+                          options={timeOptions}
+                          value={field.value}
+                          onChange={(value) => {
+                            field.onChange(value);
+                            if (value) {
+                              const hour = parseInt(value.split(':')[0]);
+                              setAddValue('period', hour >= 12 ? 'PM' : 'AM');
+                            }
+                          }}
+                          placeholder={!watchedAddDate ? 'Select date first' : !watchedAddService ? 'Select service first' : 'Select time...'}
+                          error={!!addErrors.time}
+                          disabled={!watchedAddDate || !watchedAddService}
+                          isGrouped={true}
+                        />
+                      );
+                    }}
+                  />
+                  {addErrors.time && <p className="text-xs text-red-500 mt-1">{addErrors.time.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Period</label>
+                  <Controller
+                    name="period"
+                    control={controlAdd}
+                    render={({ field }) => (
+                      <SearchableSelect
+                        options={[{ value: 'AM', label: 'AM' }, { value: 'PM', label: 'PM' }]}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="AM/PM"
+                        error={!!addErrors.period}
+                        disabled={false}
+                        isGrouped={false}
+                      />
+                    )}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Status</label>
+                  <select
+                    {...registerAdd('status')}
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Message (Optional)</label>
+                  <textarea
+                    {...registerAdd('message')}
+                    rows={2}
+                    className={`w-full px-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base resize-none ${
+                      addErrors.message ? 'border-red-500' : 'border-gray-300 focus:border-primary-500'
+                    }`}
+                    placeholder="Any message from patient..."
+                  />
+                  {addErrors.message && <p className="text-xs text-red-500 mt-1">{addErrors.message.message}</p>}
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Notes (Optional)</label>
+                  <textarea
+                    {...registerAdd('notes')}
+                    rows={2}
+                    className={`w-full px-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base resize-none ${
+                      addErrors.notes ? 'border-red-500' : 'border-gray-300 focus:border-primary-500'
+                    }`}
+                    placeholder="Internal notes..."
+                  />
+                  {addErrors.notes && <p className="text-xs text-red-500 mt-1">{addErrors.notes.message}</p>}
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-semibold text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isAdding}
+                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-lg hover:from-primary-700 hover:to-secondary-700 font-semibold text-sm disabled:opacity-50"
+                >
+                  {isAdding ? 'Adding...' : 'Add Appointment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Enhanced Modal - Responsive */}

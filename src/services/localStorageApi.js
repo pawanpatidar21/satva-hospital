@@ -259,7 +259,7 @@ function saveAppointments(list) {
 
 export function createAppointment(data) {
   const list = getAppointmentsList();
-  const { name, phone, email, service, date, time, period, message } = data;
+  const { name, phone, email, service, date, time, period, message, notes, status } = data;
   const duplicate = list.find(
     (apt) =>
       apt.phone === phone &&
@@ -293,8 +293,8 @@ export function createAppointment(data) {
     period: period || 'AM',
     dateTime: `${date || ''} ${time || ''} ${period || 'AM'}`,
     message: message || '',
-    status: 'pending',
-    notes: '',
+    status: status || 'pending',
+    notes: notes || '',
     createdAt: now,
     updatedAt: now,
   };
