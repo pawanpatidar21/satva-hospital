@@ -7,7 +7,6 @@ const TRANSITION_MS = 600;
 const TreatmentPhotosCarousel = ({ items }) => {
   const [index, setIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [direction, setDirection] = useState(1);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const touchStart = useRef(null);
   const touchEnd = useRef(null);
@@ -20,7 +19,6 @@ const TreatmentPhotosCarousel = ({ items }) => {
       if (!len || isTransitioning) return;
       const target = ((next % len) + len) % len;
       if (target === safeIndex) return;
-      setDirection(dir);
       setIsTransitioning(true);
       setIndex(next);
     },
