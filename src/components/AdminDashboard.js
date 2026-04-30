@@ -21,6 +21,9 @@ import {
   restoreFromBackup,
   getServiceDoctorType,
   getBookedTimeSlotsForDoctorType,
+  getFollowUpsForDate,
+  addDaysToDate,
+  FOLLOW_UP_DAYS_OPTIONS,
 } from '../services/localStorageApi';
 import { appointmentUpdateSchema, appointmentCreateSchema } from '../schemas/validation';
 import { 
@@ -45,7 +48,9 @@ import {
   FaPrint,
   FaFileDownload,
   FaUpload,
-  FaPlus
+  FaPlus,
+  FaBell,
+  FaPhoneVolume
 } from 'react-icons/fa';
 
 const AdminDashboard = () => {
@@ -68,6 +73,9 @@ const AdminDashboard = () => {
   const restoreInputRef = useRef(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [services, setServices] = useState(null);
+  const [followUpDate, setFollowUpDate] = useState(new Date().toISOString().slice(0, 10));
+  const [followUpsList, setFollowUpsList] = useState([]);
+  const [followUpsLoading, setFollowUpsLoading] = useState(false);
 
   const {
     register: registerUpdate,
@@ -83,7 +91,10 @@ const AdminDashboard = () => {
       date: '',
       time: '',
       period: 'AM',
-      notes: ''
+      notes: '',
+      age: '',
+      sex: '',
+      address: ''
     }
   });
 
@@ -104,6 +115,9 @@ const AdminDashboard = () => {
       name: '',
       phone: '',
       email: '',
+      age: '',
+      sex: '',
+      address: '',
       service: '',
       date: '',
       time: '',
@@ -123,6 +137,23 @@ const AdminDashboard = () => {
     fetchStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
+
+  const fetchFollowUps = async (date) => {
+    if (!date) return;
+    setFollowUpsLoading(true);
+    try {
+      const res = await getFollowUpsForDate(date);
+      setFollowUpsList(res.appointments || []);
+    } catch (e) {
+      setFollowUpsList([]);
+    } finally {
+      setFollowUpsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFollowUps(followUpDate);
+  }, [followUpDate]);
 
   useEffect(() => {
     if (showAddModal && !services) {
@@ -211,6 +242,25 @@ const AdminDashboard = () => {
         position: 'top-right',
         autoClose: 3000,
       });
+    }
+  };
+
+  const onUpdatePatientDetails = async (data) => {
+    if (!selectedAppointment) return;
+    try {
+      await updateAppointment(selectedAppointment.id, {
+        age: data.age ?? '',
+        sex: data.sex ?? '',
+        address: data.address ?? '',
+      });
+      setSelectedAppointment((prev) =>
+        prev ? { ...prev, age: data.age ?? '', sex: data.sex ?? '', address: data.address ?? '' } : null
+      );
+      toast.success('Age, Sex & Address updated', { position: 'top-right', autoClose: 3000 });
+      fetchAppointments();
+    } catch (error) {
+      console.error('Error updating patient details:', error);
+      toast.error('Failed to update patient details', { position: 'top-right', autoClose: 3000 });
     }
   };
 
@@ -352,9 +402,35 @@ const AdminDashboard = () => {
       date: appointment.date || '',
       time: appointment.time || '',
       period: period,
-      notes: appointment.notes || ''
+      notes: appointment.notes || '',
+      age: appointment.age ?? '',
+      sex: appointment.sex ?? '',
+      address: appointment.address ?? ''
     });
     setShowModal(true);
+  };
+
+  const setFollowUp = async (days) => {
+    if (!selectedAppointment) return;
+    const followUpDays = days === '' || days == null ? null : Number(days);
+    const computedFollowUpDate = followUpDays != null && selectedAppointment.date
+      ? addDaysToDate(selectedAppointment.date, followUpDays)
+      : null;
+    try {
+      await updateAppointment(selectedAppointment.id, { followUpDate: computedFollowUpDate, followUpDays });
+      setSelectedAppointment((prev) => (prev ? { ...prev, followUpDate: computedFollowUpDate, followUpDays } : null));
+      // Refetch for the dashboard's selected date (date picker), not the new follow-up date, so the list stays in sync
+      await fetchFollowUps(followUpDate);
+      fetchAppointments();
+      toast.success(
+        computedFollowUpDate
+          ? `Follow-up set for ${new Date(computedFollowUpDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
+          : 'Follow-up removed',
+        { position: 'top-right', autoClose: 3000 }
+      );
+    } catch (e) {
+      toast.error('Failed to update follow-up', { position: 'top-right', autoClose: 3000 });
+    }
   };
 
   const openAddModal = () => {
@@ -362,6 +438,9 @@ const AdminDashboard = () => {
       name: '',
       phone: '',
       email: '',
+      age: '',
+      sex: '',
+      address: '',
       service: '',
       date: '',
       time: '',
@@ -379,6 +458,9 @@ const AdminDashboard = () => {
         name: data.name,
         phone: data.phone,
         email: data.email || '',
+        age: data.age ?? '',
+        sex: data.sex ?? '',
+        address: data.address ?? '',
         service: data.service,
         date: data.date,
         time: data.time,
@@ -637,6 +719,82 @@ const AdminDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* Today's Follow-Ups */}
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl mb-4 sm:mb-6 p-4 sm:p-5 md:p-6 border border-gray-100">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-amber-100 rounded-lg">
+                <FaBell className="text-amber-600 text-lg sm:text-xl" />
+              </div>
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Follow-Up Reminders</h2>
+                <p className="text-xs sm:text-sm text-gray-500">Patients whose saved follow-up date matches the selected date (set in Edit Appointment → &quot;Follow-up after X days&quot; from visit date).</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Date:</label>
+              <input
+                type="date"
+                value={followUpDate}
+                onChange={(e) => setFollowUpDate(e.target.value)}
+                className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none text-sm"
+              />
+            </div>
+          </div>
+          {followUpsLoading ? (
+            <div className="py-8 text-center">
+              <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-primary-600 border-t-transparent"></div>
+              <p className="text-gray-500 text-sm mt-2">Loading follow-ups...</p>
+            </div>
+          ) : followUpsList.length === 0 ? (
+            <div className="py-8 text-center bg-gray-50 rounded-xl border border-gray-100">
+              <FaBell className="text-4xl text-gray-300 mx-auto mb-2" />
+              <p className="text-gray-600 font-medium">No follow-ups for this date</p>
+              <p className="text-gray-400 text-sm mt-1">Change the date or set follow-up dates when editing appointments.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Patient</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Phone</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Service</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Visit Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {followUpsList.map((apt) => (
+                    <tr key={apt.id} className="hover:bg-amber-50/50">
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-gray-900">{apt.name}</div>
+                        {apt.email && <div className="text-xs text-gray-500 truncate max-w-[180px]">{apt.email}</div>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="font-medium text-gray-900">{apt.phone}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700 truncate max-w-[200px]">{apt.service}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {apt.date ? new Date(apt.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <a
+                          href={`tel:${apt.phone}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 font-semibold text-sm"
+                        >
+                          <FaPhoneVolume className="text-sm" />
+                          Call
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
         {/* Tabs */}
         <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl mb-4 sm:mb-6 p-2 border border-gray-100">
@@ -933,6 +1091,12 @@ const AdminDashboard = () => {
                               {appointment.time} {appointment.period || 'AM'}
                             </div>
                           )}
+                          {appointment.followUpDate && (
+                            <div className="text-xs text-amber-700 mt-1 ml-8 md:ml-12 flex items-center gap-1">
+                              <FaBell className="text-amber-600" />
+                              Follow-up: {new Date(appointment.followUpDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 md:px-6 py-4 md:py-5 whitespace-nowrap">
@@ -1033,6 +1197,12 @@ const AdminDashboard = () => {
                           })}
                           {appointment.time && ` • ${appointment.time} ${appointment.period || 'AM'}`}
                         </span>
+                        {appointment.followUpDate && (
+                          <div className="text-xs text-amber-700 flex items-center gap-1 mt-1">
+                            <FaBell className="text-amber-600 flex-shrink-0" />
+                            Follow-up: {new Date(appointment.followUpDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1242,6 +1412,45 @@ const AdminDashboard = () => {
                   {addErrors.email && <p className="text-xs text-red-500 mt-1">{addErrors.email.message}</p>}
                 </div>
                 <div>
+                  <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Age</label>
+                  <input
+                    type="text"
+                    {...registerAdd('age')}
+                    className={`w-full px-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base ${
+                      addErrors.age ? 'border-red-500' : 'border-gray-300 focus:border-primary-500'
+                    }`}
+                    placeholder="e.g. 35"
+                  />
+                  {addErrors.age && <p className="text-xs text-red-500 mt-1">{addErrors.age.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Sex</label>
+                  <select
+                    {...registerAdd('sex')}
+                    className={`w-full px-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base ${
+                      addErrors.sex ? 'border-red-500' : 'border-gray-300 focus:border-primary-500'
+                    }`}
+                  >
+                    <option value="">Select</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  {addErrors.sex && <p className="text-xs text-red-500 mt-1">{addErrors.sex.message}</p>}
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Address</label>
+                  <input
+                    type="text"
+                    {...registerAdd('address')}
+                    className={`w-full px-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base ${
+                      addErrors.address ? 'border-red-500' : 'border-gray-300 focus:border-primary-500'
+                    }`}
+                    placeholder="Optional"
+                  />
+                  {addErrors.address && <p className="text-xs text-red-500 mt-1">{addErrors.address.message}</p>}
+                </div>
+                <div>
                   <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Service <span className="text-red-500">*</span></label>
                   <select
                     {...registerAdd('service')}
@@ -1421,7 +1630,49 @@ const AdminDashboard = () => {
                     {selectedAppointment.phone}
                   </p>
                 </div>
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-5 rounded-lg sm:rounded-xl border border-gray-200">
+                <form onSubmit={handleUpdateSubmit(onUpdatePatientDetails)} className="bg-gradient-to-br from-amber-50 to-amber-100 p-4 sm:p-5 rounded-lg sm:rounded-xl border-2 border-amber-200 md:col-span-2">
+                  <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-3 sm:mb-4 uppercase tracking-wide">Age, Sex & Address (Editable)</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-2">Age</label>
+                      <input
+                        type="text"
+                        {...registerUpdate('age')}
+                        className="w-full px-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base border-gray-300 focus:border-primary-500"
+                        placeholder="e.g. 35"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-2">Sex</label>
+                      <select
+                        {...registerUpdate('sex')}
+                        className="w-full px-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base border-gray-300 focus:border-primary-500"
+                      >
+                        <option value="">Select</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <label className="block text-xs font-semibold text-gray-600 mb-2">Address</label>
+                    <input
+                      type="text"
+                      {...registerUpdate('address')}
+                      className="w-full px-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base border-gray-300 focus:border-primary-500"
+                      placeholder="Address"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isUpdating}
+                    className="w-full sm:w-auto px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-semibold text-sm disabled:opacity-50"
+                  >
+                    {isUpdating ? 'Saving...' : 'Save Age / Sex / Address'}
+                  </button>
+                </form>
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-5 rounded-lg sm:rounded-xl border border-gray-200 md:col-span-2">
                   <label className="block text-xs sm:text-sm font-bold text-gray-600 mb-2 uppercase tracking-wide">Service</label>
                   <p className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <FaStethoscope className="text-primary-600 text-sm sm:text-base" />
@@ -1600,6 +1851,32 @@ const AdminDashboard = () => {
                       {status.charAt(0).toUpperCase() + status.slice(1)}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Follow-up - Set next follow-up date */}
+              <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-4 sm:p-5 md:p-6 rounded-lg sm:rounded-xl border border-amber-200">
+                <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide flex items-center gap-2">
+                  <FaBell className="text-amber-600" />
+                  Follow-up after visit
+                </label>
+                <p className="text-xs text-gray-600 mb-3">Set when the patient should be reminded for a follow-up. They will appear in &quot;Follow-Up Reminders&quot; on that date.</p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <select
+                    value={selectedAppointment.followUpDays ?? ''}
+                    onChange={(e) => setFollowUp(e.target.value)}
+                    className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none text-sm font-medium bg-white min-w-[140px]"
+                  >
+                    <option value="">None</option>
+                    {FOLLOW_UP_DAYS_OPTIONS.map((d) => (
+                      <option key={d} value={d}>{d} days</option>
+                    ))}
+                  </select>
+                  {selectedAppointment.followUpDate && (
+                    <span className="text-sm text-amber-800 font-medium">
+                      Next follow-up: {new Date(selectedAppointment.followUpDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
+                  )}
                 </div>
               </div>
 

@@ -80,6 +80,27 @@ export const appointmentUpdateSchema = z.object({
     .string()
     .max(1000, 'Notes must not exceed 1000 characters')
     .optional()
+    .or(z.literal('')),
+  followUpDays: z
+    .union([z.literal(''), z.number().int().min(1).max(365)])
+    .optional()
+    .nullable(),
+  age: z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .transform((v) => (v === '' || v == null ? '' : String(v))),
+  sex: z
+    .string()
+    .max(20)
+    .optional()
+    .nullable()
+    .or(z.literal('')),
+  address: z
+    .string()
+    .max(500)
+    .optional()
+    .nullable()
     .or(z.literal(''))
 });
 
@@ -123,6 +144,20 @@ export const appointmentCreateSchema = z.object({
     .or(z.literal('')),
   status: z
     .enum(['pending', 'confirmed', 'cancelled', 'completed'])
+    .optional(),
+  age: z
+    .union([z.string(), z.number()])
     .optional()
+    .transform((v) => (v === '' || v == null ? '' : String(v))),
+  sex: z
+    .string()
+    .max(20, 'Sex must not exceed 20 characters')
+    .optional()
+    .or(z.literal('')),
+  address: z
+    .string()
+    .max(500, 'Address must not exceed 500 characters')
+    .optional()
+    .or(z.literal(''))
 });
 

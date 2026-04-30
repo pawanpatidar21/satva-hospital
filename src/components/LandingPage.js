@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import SeoHead from './SeoHead';
 import { getClinic, getDoctors, getServices } from '../services/localStorageApi';
 import { FaPhone, FaStethoscope, FaUserMd, FaCalendarAlt, FaCheckCircle, FaArrowDown, FaHeartbeat, FaShieldAlt, FaAward, FaHospital, FaCalculator } from 'react-icons/fa';
+import BeforeAfterCarousel from './BeforeAfterCarousel';
+import TreatmentPhotosCarousel from './TreatmentPhotosCarousel';
+import { endocrinologistGallery, dermatologistGallery, generalTreatmentPhotos } from '../data/beforeAfterData';
 import BMICalculator from './BMICalculator';
 import DiabeticCalculator from './DiabeticCalculator';
 import BSACalculator from './BSACalculator';
@@ -351,6 +354,53 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Before/After & Results - Endocrinologist & Dermatologist carousels */}
+      <section id="results" aria-labelledby="results-heading" className="relative py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-br from-white via-primary-50/30 to-secondary-50/30 overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-10 right-4 sm:top-20 sm:right-20 w-40 h-40 sm:w-56 sm:h-56 md:w-72 md:h-72 bg-primary-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15"></div>
+          <div className="absolute bottom-10 left-4 sm:bottom-20 sm:left-20 w-40 h-40 sm:w-56 sm:h-56 md:w-72 md:h-72 bg-secondary-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15"></div>
+        </div>
+        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10 sm:mb-12 md:mb-16">
+            <h2 id="results-heading" className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-4 sm:mb-6 bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent px-4">
+              Treatment Results
+            </h2>
+            <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+              <div className="h-0.5 sm:h-1 w-8 sm:w-12 md:w-16 bg-gradient-to-r from-transparent to-primary-500 rounded-full"></div>
+              <div className="w-24 sm:w-32 h-0.5 sm:h-1 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 rounded-full"></div>
+              <div className="h-0.5 sm:h-1 w-8 sm:w-12 md:w-16 bg-gradient-to-l from-transparent to-primary-500 rounded-full"></div>
+            </div>
+            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto px-4">
+              Before & after care results and treatment outcomes from our specialists
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 sm:gap-12 md:gap-16 max-w-7xl mx-auto">
+            {/* Endocrinologist */}
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl p-2 sm:p-3 shadow-xl border border-primary-200/50">
+              <BeforeAfterCarousel
+                items={endocrinologistGallery}
+                sectionTitle="Endocrinology & Diabetes Care"
+                accentColor="primary"
+              />
+            </div>
+            {/* Dermatologist */}
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl p-2 sm:p-3 shadow-xl border border-secondary-200/50">
+              <BeforeAfterCarousel
+                items={dermatologistGallery}
+                sectionTitle="Dermatology & Skin Care"
+                accentColor="secondary"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Full-width auto-scroll carousel: general treatment photos (breaks out of container) */}
+        <div className="mt-12 sm:mt-16 md:mt-20 w-full">
+          <TreatmentPhotosCarousel items={generalTreatmentPhotos} />
+        </div>
+      </section>
+
       {/* Enhanced Services Section - Responsive */}
       <section id="services" aria-labelledby="services-heading" className="relative py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-br from-white via-gray-50 to-secondary-50 overflow-hidden">
         {/* Background Decorations - Responsive */}
@@ -609,6 +659,13 @@ const LandingPage = () => {
                 >
                   <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-secondary-400 rounded-full group-hover:scale-150 transition-transform"></div>
                   <span className="text-base sm:text-lg font-medium group-hover:text-secondary-300 transition-colors">Services</span>
+                </a>
+                <a 
+                  href="#results" 
+                  className="group flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-white/5 backdrop-blur-sm rounded-lg sm:rounded-xl border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300 transform hover:translate-x-1 sm:hover:translate-x-2"
+                >
+                  <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-amber-400 rounded-full group-hover:scale-150 transition-transform"></div>
+                  <span className="text-base sm:text-lg font-medium group-hover:text-amber-300 transition-colors">Treatment Results</span>
                 </a>
                 <a 
                   href="#health-tools" 

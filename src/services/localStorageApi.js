@@ -55,6 +55,9 @@ const DEFAULT_CLINIC = {
   location: 'Neemuch',
   contact: { phone1: '9131960802', phone2: '9340633407' },
   specializations: ['Skin', 'Diabetes', 'Thyroid', 'Endocrinology'],
+  /** For prescription slip footer */
+  slipAddress: 'पुराना देवधर डायग्नोस्टिक सेंटर, गुप्ता पुलिया के पास, नीमच (म.प्र.)',
+  consultationDisclaimer: 'परामर्श शुल्क 10 दिनों तक मान्य | कृपया दवाईयों का सेवन डॉक्टर को दिखाकर ही करें। No Substitution Please',
 };
 
 // Default services (from backend)
@@ -77,21 +80,24 @@ const DEFAULT_DOCTORS = [
     id: 1,
     name: 'डॉ. दीक्षा पाटीदार',
     englishName: 'Dr. Diksha Patidar',
-    qualifications: 'एमबीबीएस, एमडी मेडिसिन (AIIMS नई दिल्ली)',
-    specialization: 'डीआरएनबी एंडोक्राइनोलॉजी (नई दिल्ली)',
-    title: 'हार्मान रोग विशेषज्ञ',
+    qualifications: 'एम.डी. मेडिसिन (एम्स दिल्ली)',
+    specialization: 'डी.आर.एन.बी. एंडोक्राइनोलॉजी (हार्मोन रोग विशेषज्ञ), सफदरजंग हॉस्पिटल, दिल्ली',
+    title: 'हार्मोन रोग विशेषज्ञ',
     type: 'Endocrinologist',
     image: `${process.env.PUBLIC_URL || ''}/doctors/dr-diksha.png`,
+    experience: '',
+    mpNumber: 'MP-46249',
   },
   {
     id: 2,
     name: 'डॉ. चेतन कुमार पाटीदार',
     englishName: 'Dr. Chetan Kumar Patidar',
-    qualifications: 'एमबीबीएस एम.डी. (चर्म रोग, कुष्ठ रोग एवं यौन रोग विशेषज्ञ)',
-    specialization: 'सफदरजंग हॉस्पिटल, नई दिल्ली',
-    experience: 'पूर्व चिकित्सक ईएसआईसी मेडीकल कॉलेज, फरीदाबाद',
+    qualifications: 'एम.डी. चर्म, यौन एवं कुष्ठ रोग विशेषज्ञ',
+    specialization: 'सफदरजंग हॉस्पिटल, दिल्ली',
+    experience: 'Ex. Consultant ESIC medical college',
     type: 'Dermatologist',
     image: `${process.env.PUBLIC_URL || ''}/doctors/dr-chetan.png`,
+    mpNumber: 'MP-23109',
   },
 ];
 
@@ -223,6 +229,7 @@ export function createDoctor(data) {
     type: data.type || '',
     experience: data.experience || '',
     image: data.image || '',
+    mpNumber: data.mpNumber || '',
   };
   doctors.push(doctor);
   setJson(STORAGE_KEYS.DOCTORS, doctors);
@@ -259,7 +266,7 @@ function saveAppointments(list) {
 
 export function createAppointment(data) {
   const list = getAppointmentsList();
-  const { name, phone, email, service, date, time, period, message, notes, status } = data;
+  const { name, phone, email, service, date, time, period, message, notes, status, age, sex, address } = data;
   const duplicate = list.find(
     (apt) =>
       apt.phone === phone &&
@@ -295,6 +302,11 @@ export function createAppointment(data) {
     message: message || '',
     status: status || 'pending',
     notes: notes || '',
+    age: age || '',
+    sex: sex || '',
+    address: address || '',
+    followUpDate: null,
+    followUpDays: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -370,6 +382,38 @@ export function getAppointmentStats() {
   return Promise.resolve({ success: true, stats });
 }
 
+/** Follow-up days options (in days) */
+export const FOLLOW_UP_DAYS_OPTIONS = [5, 10, 15, 20, 30, 60];
+
+/**
+ * Compute follow-up date from a visit date and number of days.
+ * @param {string} visitDate - YYYY-MM-DD
+ * @param {number} days - e.g. 15
+ * @returns {string} YYYY-MM-DD
+ */
+export function addDaysToDate(visitDate, days) {
+  if (!visitDate || days == null || days <= 0) return null;
+  const d = new Date(visitDate);
+  d.setDate(d.getDate() + Number(days));
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Get appointments whose follow-up date is on the given date.
+ * @param {string} date - YYYY-MM-DD
+ * @returns {Promise<{ success: boolean, appointments: Array }>}
+ */
+export function getFollowUpsForDate(date) {
+  if (!date) return Promise.resolve({ success: true, appointments: [] });
+  const list = getAppointmentsList();
+  const normalized = String(date).slice(0, 10);
+  const appointments = list.filter(
+    (a) => a.followUpDate && String(a.followUpDate).slice(0, 10) === normalized
+  );
+  appointments.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  return Promise.resolve({ success: true, appointments });
+}
+
 /**
  * Export appointments to Excel, grouped date-wise.
  * Each date gets its own sheet. Returns a Blob for download.
@@ -389,7 +433,7 @@ export function exportAppointmentsToExcel(filters = {}) {
 
   const header = [
     'ID', 'Name', 'Phone', 'Email', 'Service', 'Date', 'Time', 'Period',
-    'Status', 'Notes', 'Message', 'Created At', 'Updated At',
+    'Status', 'Notes', 'Message', 'Follow-Up Date', 'Follow-Up Days', 'Created At', 'Updated At',
   ];
 
   const wb = XLSX.utils.book_new();
@@ -400,7 +444,7 @@ export function exportAppointmentsToExcel(filters = {}) {
     // Workbook must have at least one sheet
     const ws = XLSX.utils.aoa_to_sheet([
       header,
-      ['', 'No appointments found for the selected period', '', '', '', '', '', '', '', '', '', '', ''],
+      ['', 'No appointments found for the selected period', '', '', '', '', '', '', '', '', '', '', '', '', ''],
     ]);
     XLSX.utils.book_append_sheet(wb, ws, 'Appointments');
   } else {
@@ -417,6 +461,8 @@ export function exportAppointmentsToExcel(filters = {}) {
         apt.status || '',
         apt.notes || '',
         apt.message || '',
+        apt.followUpDate || '',
+        apt.followUpDays != null ? apt.followUpDays : '',
         apt.createdAt || '',
         apt.updatedAt || '',
       ]);
