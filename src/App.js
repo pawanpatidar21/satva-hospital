@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { HelmetProvider } from 'react-helmet-async';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
@@ -8,9 +8,19 @@ import LandingPage from './components/LandingPage';
 import Login from './components/Login';
 import AdminDashboard from './components/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import { initialCloudSync, FIREBASE_ENABLED } from './services/localStorageApi';
 import './App.css';
 
 function App() {
+  useEffect(() => {
+    if (FIREBASE_ENABLED) {
+      initialCloudSync().then((result) => {
+        if (result.synced) {
+          console.log('[Sattva] Data synced from Firestore');
+        }
+      });
+    }
+  }, []);
   return (
     <HelmetProvider>
     <AuthProvider>

@@ -60,7 +60,7 @@ const LandingPage = () => {
       <SeoHead clinic={clinicData} />
       <main id="main-content">
       {/* Enhanced Hero Section - Responsive */}
-      <section aria-label="Welcome to Sattva Clinic" className="relative min-h-[100vh] sm:min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-700 overflow-hidden py-8 sm:py-0">
+      <section aria-label="Welcome to Sattva Hospital" className="relative min-h-[100vh] sm:min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-700 overflow-hidden py-8 sm:py-0">
         {/* Enhanced Animated Background with Medical Theme */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-transparent"></div>
         
@@ -121,7 +121,7 @@ const LandingPage = () => {
             <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4 px-4">
               <div className="h-0.5 sm:h-1 w-8 sm:w-12 md:w-16 bg-gradient-to-r from-transparent via-white to-white rounded-full"></div>
               <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-light text-white/95 tracking-wide sm:tracking-widest animate-slide-up whitespace-nowrap">
-                Sattva Clinic
+                Sattva Hospital
               </p>
               <div className="h-0.5 sm:h-1 w-8 sm:w-12 md:w-16 bg-gradient-to-l from-transparent via-white to-white rounded-full"></div>
             </div>
@@ -248,7 +248,7 @@ const LandingPage = () => {
               <FaHospital className="text-3xl sm:text-4xl md:text-5xl text-primary-600" />
             </div>
             <h2 id="about-heading" className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-gray-900 mb-4 sm:mb-6 bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent px-4">
-              About Our Clinic
+              About Our Hospital
             </h2>
             <div className="w-24 sm:w-32 h-0.5 sm:h-1 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 mx-auto rounded-full mb-6 sm:mb-8"></div>
           </div>
@@ -259,7 +259,7 @@ const LandingPage = () => {
               हमारा लक्ष्य उच्च गुणवत्ता वाली चिकित्सा सेवाएं प्रदान करना है।
             </p>
             <p className="text-sm sm:text-base md:text-lg text-gray-600 text-center mt-4 sm:mt-6 leading-relaxed">
-              Sattva Clinic is a modern medical facility specializing in Skin Diseases, Diabetes, Thyroid, and Endocrinology. 
+              Sattva Hospital is a modern medical facility specializing in Skin Diseases, Diabetes, Thyroid, and Endocrinology. 
               Our goal is to provide high-quality medical services with expert care and compassion.
             </p>
           </div>
@@ -550,7 +550,7 @@ const LandingPage = () => {
             Book an Appointment
           </h2>
           <p className="text-base sm:text-lg md:text-xl text-white/90 mb-8 sm:mb-10">
-            Call us or visit the clinic to schedule your visit with our specialists.
+            Call us or visit the hospital to schedule your visit with our specialists.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
             <a

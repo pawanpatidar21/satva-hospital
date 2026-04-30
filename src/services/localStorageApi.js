@@ -7,6 +7,18 @@
 
 import CryptoJS from 'crypto-js';
 import * as XLSX from 'xlsx';
+import {
+  cloudSaveAppointment,
+  cloudDeleteAppointment,
+  cloudBulkSaveAppointments,
+  cloudSaveDoctor,
+  cloudDeleteDoctor,
+  cloudBulkSaveDoctors,
+  initialSync,
+  subscribeToAppointments,
+  subscribeToDoctors,
+  FIREBASE_ENABLED,
+} from './cloudSync';
 
 const STORAGE_KEYS = {
   APPOINTMENTS: 'Sattva_appointments',
@@ -234,6 +246,7 @@ export function createDoctor(data) {
   doctors.push(doctor);
   setJson(STORAGE_KEYS.DOCTORS, doctors);
   setJson(STORAGE_KEYS.NEXT_DOCTOR_ID, id + 1);
+  cloudSaveDoctor(doctor); // fire-and-forget cloud sync
   return Promise.resolve({ success: true, doctor });
 }
 
@@ -243,6 +256,7 @@ export function updateDoctor(id, data) {
   if (index === -1) return Promise.resolve(null);
   doctors[index] = { ...doctors[index], ...data };
   setJson(STORAGE_KEYS.DOCTORS, doctors);
+  cloudSaveDoctor(doctors[index]); // fire-and-forget cloud sync
   return Promise.resolve({ success: true, doctor: doctors[index] });
 }
 
@@ -252,6 +266,7 @@ export function deleteDoctor(id) {
   if (index === -1) return Promise.resolve({ success: false });
   doctors.splice(index, 1);
   setJson(STORAGE_KEYS.DOCTORS, doctors);
+  cloudDeleteDoctor(id); // fire-and-forget cloud sync
   return Promise.resolve({ success: true, message: 'Doctor deleted successfully' });
 }
 
@@ -263,6 +278,52 @@ function getAppointmentsList() {
 function saveAppointments(list) {
   setJson(STORAGE_KEYS.APPOINTMENTS, list);
 }
+
+// ─── Cloud sync bootstrap ───────────────────────────────────────────────────
+
+/**
+ * Call once on app start (inside a useEffect in App.js or AuthContext).
+ * Pulls data from Firestore if configured; pushes local data if Firestore is empty.
+ */
+export async function initialCloudSync() {
+  return initialSync({
+    getLocalAppointments: () => getAppointmentsList(),
+    saveLocalAppointments: (apts) => setJson(STORAGE_KEYS.APPOINTMENTS, apts),
+    getLocalDoctors: () => getDoctorsList(),
+    saveLocalDoctors: (docs) => setJson(STORAGE_KEYS.DOCTORS, docs),
+    getLocalMeta: (key) => {
+      if (key === 'nextAppointmentId') return getJson(STORAGE_KEYS.NEXT_APPOINTMENT_ID, 1);
+      if (key === 'nextDoctorId') return getJson(STORAGE_KEYS.NEXT_DOCTOR_ID, 1);
+      return null;
+    },
+    saveLocalMeta: (key, value) => {
+      if (key === 'nextAppointmentId') setJson(STORAGE_KEYS.NEXT_APPOINTMENT_ID, value);
+      if (key === 'nextDoctorId') setJson(STORAGE_KEYS.NEXT_DOCTOR_ID, value);
+    },
+  });
+}
+
+/**
+ * Subscribe to real-time Firestore changes.
+ * onAppointmentsChange and onDoctorsChange are called whenever another browser/device
+ * writes data — use these to re-render the UI.
+ * Returns a cleanup function (call it on component unmount).
+ */
+export function subscribeCloudChanges({ onAppointmentsChange, onDoctorsChange }) {
+  if (!FIREBASE_ENABLED) return () => {};
+  const unsubApts  = subscribeToAppointments((apts) => {
+    // Persist to localStorage so offline reads stay fresh
+    setJson(STORAGE_KEYS.APPOINTMENTS, apts);
+    if (onAppointmentsChange) onAppointmentsChange(apts);
+  });
+  const unsubDocs = subscribeToDoctors((docs) => {
+    setJson(STORAGE_KEYS.DOCTORS, docs);
+    if (onDoctorsChange) onDoctorsChange(docs);
+  });
+  return () => { unsubApts(); unsubDocs(); };
+}
+
+export { FIREBASE_ENABLED };
 
 export function createAppointment(data) {
   const list = getAppointmentsList();
@@ -312,6 +373,7 @@ export function createAppointment(data) {
   };
   list.push(appointment);
   saveAppointments(list);
+  cloudSaveAppointment(appointment); // fire-and-forget cloud sync
   return Promise.resolve({
     success: true,
     message: 'Appointment request received. We will contact you soon.',
@@ -358,6 +420,7 @@ export function updateAppointment(id, data) {
     updatedAt: new Date().toISOString(),
   };
   saveAppointments(list);
+  cloudSaveAppointment(list[index]); // fire-and-forget cloud sync
   return Promise.resolve({ success: true, appointment: list[index] });
 }
 
@@ -367,6 +430,7 @@ export function deleteAppointment(id) {
   if (index === -1) return Promise.resolve(null);
   list.splice(index, 1);
   saveAppointments(list);
+  cloudDeleteAppointment(id); // fire-and-forget cloud sync
   return Promise.resolve({ success: true, message: 'Appointment deleted successfully' });
 }
 
@@ -466,7 +530,7 @@ export function exportAppointmentsToExcel(filters = {}) {
         apt.createdAt || '',
         apt.updatedAt || '',
       ]);
-      const ws = XLSX.utils.aoa_to_sheet([[header], ...rows]);
+      const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
       const sheetName = date.replace(/[/\\*?:\x5B\x5D]/g, '-').slice(0, 31);
       XLSX.utils.book_append_sheet(wb, ws, sheetName || 'Appointments');
     });
@@ -602,6 +666,10 @@ export function restoreFromBackup(file) {
         if (nextDoctorId !== undefined) setJson(STORAGE_KEYS.NEXT_DOCTOR_ID, nextDoctorId);
         if (adminCredentials !== undefined) setJson(STORAGE_KEYS.ADMIN_CREDENTIALS, adminCredentials);
 
+        // Push restored data to cloud
+        cloudBulkSaveAppointments(appointments);
+        if (doctors !== null) cloudBulkSaveDoctors(doctors);
+
         resolve({
           success: true,
           message: `Restored ${appointments.length} appointments${doctors !== null ? ` and ${doctors.length} doctors` : ''}. Reload the page to see changes.`,
@@ -618,6 +686,145 @@ export function restoreFromBackup(file) {
       resolve({ success: false, message: 'Failed to read file', error: 'read_error' });
     };
     reader.readAsText(file, 'UTF-8');
+  });
+}
+
+/**
+ * Import/restore appointments from an Excel file that was previously exported via
+ * downloadAppointmentsExcel / downloadDayBackup / downloadMonthBackup.
+ * Merges into existing localStorage data by appointment ID (no duplicates).
+ * @param {File} file - .xlsx file
+ * @returns {Promise<{ success: boolean, message: string, imported: number, error?: string }>}
+ */
+export function restoreFromExcel(file) {
+  return new Promise((resolve) => {
+    if (!file) {
+      resolve({ success: false, message: 'No file selected', error: 'no_file' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, { type: 'array' });
+
+        const imported = [];
+
+        wb.SheetNames.forEach((sheetName) => {
+          const ws = wb.Sheets[sheetName];
+          if (!ws) return;
+          const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+          if (rows.length < 2) return;
+
+          // Find header row (first row that contains 'ID' and 'Name')
+          let headerRowIdx = -1;
+          let headerRow = [];
+          for (let r = 0; r < Math.min(rows.length, 5); r++) {
+            const row = rows[r].map(String);
+            if (row.includes('ID') && row.includes('Name') && row.includes('Phone')) {
+              headerRowIdx = r;
+              headerRow = row;
+              break;
+            }
+          }
+          if (headerRowIdx === -1) return; // Not our format
+
+          const col = (name) => headerRow.indexOf(name);
+          const idIdx       = col('ID');
+          const nameIdx     = col('Name');
+          const phoneIdx    = col('Phone');
+          const emailIdx    = col('Email');
+          const serviceIdx  = col('Service');
+          const dateIdx     = col('Date');
+          const timeIdx     = col('Time');
+          const periodIdx   = col('Period');
+          const statusIdx   = col('Status');
+          const notesIdx    = col('Notes');
+          const messageIdx  = col('Message');
+          const followUpDateIdx  = col('Follow-Up Date');
+          const followUpDaysIdx  = col('Follow-Up Days');
+          const createdAtIdx     = col('Created At');
+          const updatedAtIdx     = col('Updated At');
+
+          for (let i = headerRowIdx + 1; i < rows.length; i++) {
+            const row = rows[i];
+            const rawId = row[idIdx];
+            if (rawId === '' || rawId == null) continue;
+            const id = Number(rawId);
+            if (!id || isNaN(id)) continue;
+
+            imported.push({
+              id,
+              name:         String(row[nameIdx]    || ''),
+              phone:        String(row[phoneIdx]   || ''),
+              email:        String(row[emailIdx]   || ''),
+              service:      String(row[serviceIdx] || ''),
+              date:         String(row[dateIdx]    || ''),
+              time:         String(row[timeIdx]    || ''),
+              period:       String(row[periodIdx]  || 'AM'),
+              dateTime:     `${row[dateIdx] || ''} ${row[timeIdx] || ''} ${row[periodIdx] || 'AM'}`,
+              status:       String(row[statusIdx]  || 'pending'),
+              notes:        String(row[notesIdx]   || ''),
+              message:      String(row[messageIdx] || ''),
+              followUpDate: row[followUpDateIdx] ? String(row[followUpDateIdx]) : null,
+              followUpDays: row[followUpDaysIdx] !== '' && row[followUpDaysIdx] != null
+                              ? Number(row[followUpDaysIdx]) : null,
+              createdAt:    String(row[createdAtIdx] || new Date().toISOString()),
+              updatedAt:    String(row[updatedAtIdx] || new Date().toISOString()),
+            });
+          }
+        });
+
+        if (imported.length === 0) {
+          resolve({ success: false, message: 'No appointments found in the Excel file. Make sure you upload a file exported from this app.', imported: 0 });
+          return;
+        }
+
+        // Merge into existing localStorage (by ID)
+        const existing = getAppointmentsList();
+        const byId = {};
+        existing.forEach((a) => { byId[a.id] = a; });
+        let newCount = 0;
+        let updatedCount = 0;
+        imported.forEach((apt) => {
+          if (byId[apt.id]) {
+            byId[apt.id] = { ...byId[apt.id], ...apt };
+            updatedCount++;
+          } else {
+            byId[apt.id] = apt;
+            newCount++;
+          }
+        });
+        const merged = Object.values(byId).sort((a, b) => a.id - b.id);
+        saveAppointments(merged);
+
+        // Keep next ID ahead of max
+        const maxId = Math.max(...merged.map((a) => a.id), 0);
+        const currentNext = getJson(STORAGE_KEYS.NEXT_APPOINTMENT_ID, 1);
+        if (maxId >= currentNext) {
+          setJson(STORAGE_KEYS.NEXT_APPOINTMENT_ID, maxId + 1);
+        }
+
+        cloudBulkSaveAppointments(merged); // push to cloud after Excel import
+
+        resolve({
+          success: true,
+          message: `Excel imported: ${newCount} new + ${updatedCount} updated appointments. Reloading…`,
+          imported: imported.length,
+        });
+      } catch (err) {
+        resolve({
+          success: false,
+          message: 'Failed to parse Excel file. Make sure you upload a valid .xlsx exported from this app.',
+          error: String(err?.message || err),
+          imported: 0,
+        });
+      }
+    };
+    reader.onerror = () => {
+      resolve({ success: false, message: 'Failed to read file', error: 'read_error', imported: 0 });
+    };
+    reader.readAsArrayBuffer(file);
   });
 }
 

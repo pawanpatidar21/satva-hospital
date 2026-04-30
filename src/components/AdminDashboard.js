@@ -19,11 +19,14 @@ import {
   downloadMonthBackup,
   downloadFullBackup,
   restoreFromBackup,
+  restoreFromExcel,
   getServiceDoctorType,
   getBookedTimeSlotsForDoctorType,
   getFollowUpsForDate,
   addDaysToDate,
   FOLLOW_UP_DAYS_OPTIONS,
+  subscribeCloudChanges,
+  FIREBASE_ENABLED,
 } from '../services/localStorageApi';
 import { appointmentUpdateSchema, appointmentCreateSchema } from '../schemas/validation';
 import { 
@@ -71,6 +74,7 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('appointments'); // 'appointments' or 'doctors'
   const [restoring, setRestoring] = useState(false);
   const restoreInputRef = useRef(null);
+  const restoreExcelInputRef = useRef(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [services, setServices] = useState(null);
   const [followUpDate, setFollowUpDate] = useState(new Date().toISOString().slice(0, 10));
@@ -137,6 +141,19 @@ const AdminDashboard = () => {
     fetchStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
+
+  // Real-time sync: when another browser/device changes data, refresh UI automatically
+  useEffect(() => {
+    if (!FIREBASE_ENABLED) return;
+    const unsubscribe = subscribeCloudChanges({
+      onAppointmentsChange: () => {
+        fetchAppointments();
+        fetchStats();
+      },
+    });
+    return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchFollowUps = async (date) => {
     if (!date) return;
@@ -389,6 +406,25 @@ const AdminDashboard = () => {
         setTimeout(() => window.location.reload(), 1500);
       } else {
         toast.error(result.message, { position: 'top-right', autoClose: 5000 });
+      }
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const handleRestoreFromExcel = async (e) => {
+    const file = e?.target?.files?.[0];
+    if (!file) return;
+    setRestoring(true);
+    try {
+      const result = await restoreFromExcel(file);
+      if (result.success) {
+        toast.success(result.message, { position: 'top-right', autoClose: 5000 });
+        if (restoreExcelInputRef.current) restoreExcelInputRef.current.value = '';
+        setTimeout(() => window.location.reload(), 1800);
+      } else {
+        toast.error(result.message, { position: 'top-right', autoClose: 6000 });
+        if (restoreExcelInputRef.current) restoreExcelInputRef.current.value = '';
       }
     } finally {
       setRestoring(false);
@@ -978,7 +1014,25 @@ const AdminDashboard = () => {
                 className="px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm bg-amber-700 hover:bg-amber-800 disabled:opacity-50 text-white flex items-center gap-1.5"
               >
                 <FaUpload className="text-sm" />
-                {restoring ? 'Restoring…' : 'Restore from backup'}
+                {restoring ? 'Restoring…' : 'Restore from backup (.json)'}
+              </button>
+              {/* Import from Excel */}
+              <input
+                ref={restoreExcelInputRef}
+                type="file"
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                onChange={handleRestoreFromExcel}
+                className="hidden"
+              />
+              <button
+                type="button"
+                disabled={restoring}
+                onClick={() => restoreExcelInputRef.current?.click()}
+                className="px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white flex items-center gap-1.5"
+                title="Import appointments from a previously exported Excel (.xlsx) file. Merges data — no duplicates."
+              >
+                <FaFileExcel className="text-sm" />
+                {restoring ? 'Importing…' : 'Import from Excel (.xlsx)'}
               </button>
             </div>
           </div>
