@@ -9,4 +9,4 @@ Disallow: /admin/dashboard
 Crawl-delay: 1
 
 # Sitemap
-Sitemap: https://Sattva-hospital-nmh.vercel.app/sitemap.xml
+Sitemap: https://sattva-hospital-nmh.vercel.app/sitemap.xml
