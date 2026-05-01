@@ -55,7 +55,6 @@ const BeforeAfterCarousel = ({ items, sectionTitle, accentColor = 'primary' }) =
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
-        {/* Slide: single image (merged before/after or result) */}
         <div className="relative aspect-[4/3] sm:aspect-[16/10] bg-gray-100">
           <div className="relative w-full h-full">
             <img
