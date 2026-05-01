@@ -629,7 +629,7 @@ const LandingPage = () => {
 
       {/* Floating WhatsApp Button */}
       <a
-        href={wa1}
+        href={wa2}
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Book appointment on WhatsApp"

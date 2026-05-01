@@ -7,6 +7,7 @@
 
 import CryptoJS from 'crypto-js';
 import * as XLSX from 'xlsx';
+import { v4 as uuidv4 } from 'uuid';
 import {
   cloudSaveAppointment,
   cloudDeleteAppointment,
@@ -142,11 +143,11 @@ function setJson(key, value) {
   }
 }
 
-function getNextId(key) {
-  const id = (getJson(key, 1) || 1);
-  setJson(key, id + 1);
-  return id;
-}
+// function getNextId(key) {
+//   const id = (getJson(key, 1) || 1);
+//   setJson(key, id + 1);
+//   return id;
+// }
 
 // Map service name to doctor type (Endocrinologist / Dermatologist / etc.)
 export function getServiceDoctorType(service) {
@@ -348,7 +349,8 @@ export function createAppointment(data) {
       },
     });
   }
-  const id = getNextId(STORAGE_KEYS.NEXT_APPOINTMENT_ID);
+    // const id = getNextId(STORAGE_KEYS.NEXT_APPOINTMENT_ID);
+  const id = uuidv4(); // Use UUID for appointment ID to avoid collisions in multi-device scenarios
   const now = new Date().toISOString();
   const appointment = {
     id,
