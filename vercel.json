@@ -21,10 +21,13 @@
             ]
         }
     ],
-    "rewrites": [
+    "routes": [
         {
-            "source": "/((?!sitemap\\.xml|robots\\.txt|favicon\\.ico|logo.*\\.png|og-image\\.png|manifest\\.json|static/).*)",
-            "destination": "/index.html"
+            "handle": "filesystem"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/index.html"
         }
     ]
 }
