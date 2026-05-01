@@ -23,15 +23,7 @@
     ],
     "rewrites": [
         {
-            "source": "/sitemap.xml",
-            "destination": "/sitemap.xml"
-        },
-        {
-            "source": "/robots.txt",
-            "destination": "/robots.txt"
-        },
-        {
-            "source": "/(.*)",
+            "source": "/((?!sitemap\\.xml|robots\\.txt|favicon\\.ico|logo.*\\.png|og-image\\.png|manifest\\.json|static/).*)",
             "destination": "/index.html"
         }
     ]
