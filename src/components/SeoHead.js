@@ -5,7 +5,7 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 
-const SITE_URL = process.env.REACT_APP_SITE_URL || 'https://Sattva-hospital-nmh.vercel.app';
+const SITE_URL = process.env.REACT_APP_SITE_URL || 'https://sattva-hospital-nmh.vercel.app';
 
 const META = {
   title: 'सत्त्व हॉस्पिटल नीमच | Skin, Diabetes, Thyroid & Endocrinology Specialist | Dr. Diksha Patidar | Dr. Chetan Patidar',

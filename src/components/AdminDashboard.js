@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -55,6 +55,45 @@ import {
   FaBell,
   FaPhoneVolume
 } from 'react-icons/fa';
+
+// Time-slot options — defined outside component so the array is created only once
+const TIME_SLOTS = [
+  { value: '09:00', label: '9:00 AM',          hour: 9,  minute: 0  },
+  { value: '09:15', label: '9:15 AM',          hour: 9,  minute: 15 },
+  { value: '09:30', label: '9:30 AM',          hour: 9,  minute: 30 },
+  { value: '09:45', label: '9:45 AM',          hour: 9,  minute: 45 },
+  { value: '10:00', label: '10:00 AM',         hour: 10, minute: 0  },
+  { value: '10:15', label: '10:15 AM',         hour: 10, minute: 15 },
+  { value: '10:30', label: '10:30 AM',         hour: 10, minute: 30 },
+  { value: '10:45', label: '10:45 AM',         hour: 10, minute: 45 },
+  { value: '11:00', label: '11:00 AM',         hour: 11, minute: 0  },
+  { value: '11:15', label: '11:15 AM',         hour: 11, minute: 15 },
+  { value: '11:30', label: '11:30 AM',         hour: 11, minute: 30 },
+  { value: '12:00', label: '12:00 PM (Noon)',  hour: 12, minute: 0  },
+  { value: '12:15', label: '12:15 PM',         hour: 12, minute: 15 },
+  { value: '12:30', label: '12:30 PM',         hour: 12, minute: 30 },
+  { value: '12:45', label: '12:45 PM',         hour: 12, minute: 45 },
+  { value: '13:00', label: '1:00 PM',          hour: 13, minute: 0  },
+  { value: '13:15', label: '1:15 PM',          hour: 13, minute: 15 },
+  { value: '13:30', label: '1:30 PM',          hour: 13, minute: 30 },
+  { value: '13:45', label: '1:45 PM',          hour: 13, minute: 45 },
+  { value: '14:00', label: '2:00 PM',          hour: 14, minute: 0  },
+  { value: '14:15', label: '2:15 PM',          hour: 14, minute: 15 },
+  { value: '14:30', label: '2:30 PM',          hour: 14, minute: 30 },
+  { value: '15:00', label: '3:00 PM',          hour: 15, minute: 0  },
+  { value: '15:15', label: '3:15 PM',          hour: 15, minute: 15 },
+  { value: '15:30', label: '3:30 PM',          hour: 15, minute: 30 },
+  { value: '15:45', label: '3:45 PM',          hour: 15, minute: 45 },
+  { value: '16:00', label: '4:00 PM',          hour: 16, minute: 0  },
+  { value: '16:15', label: '4:15 PM',          hour: 16, minute: 15 },
+  { value: '16:30', label: '4:30 PM',          hour: 16, minute: 30 },
+  { value: '16:45', label: '4:45 PM',          hour: 16, minute: 45 },
+  { value: '17:00', label: '5:00 PM',          hour: 17, minute: 0  },
+  { value: '17:15', label: '5:15 PM',          hour: 17, minute: 15 },
+  { value: '17:30', label: '5:30 PM',          hour: 17, minute: 30 },
+  { value: '17:45', label: '5:45 PM',          hour: 17, minute: 45 },
+  { value: '18:00', label: '6:00 PM',          hour: 18, minute: 0  },
+];
 
 const AdminDashboard = () => {
   const { logout } = useAuth();
@@ -183,7 +222,7 @@ const AdminDashboard = () => {
     setCurrentPage(1);
   }, [filter, searchTerm]);
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     try {
       const params = filter !== 'all' ? { status: filter } : {};
       const data = await getAdminAppointments(params);
@@ -193,18 +232,18 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const data = await getAppointmentStats();
       setStats(data.stats);
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
-  };
+  }, []);
 
-  const updateAppointmentStatus = async (id, status) => {
+  const updateAppointmentStatus = useCallback(async (id, status) => {
     try {
       await updateAppointment(id, { status });
       toast.success(`Appointment status updated to ${status}`, {
@@ -221,9 +260,9 @@ const AdminDashboard = () => {
         autoClose: 3000,
       });
     }
-  };
+  }, [fetchAppointments, fetchStats]);
 
-  const deleteAppointment = async (id) => {
+  const deleteAppointment = useCallback(async (id) => {
     if (!window.confirm('Are you sure you want to delete this appointment?')) {
       return;
     }
@@ -242,7 +281,7 @@ const AdminDashboard = () => {
         autoClose: 3000,
       });
     }
-  };
+  }, [fetchAppointments, fetchStats]);
 
   const onUpdateNotes = async (data) => {
     if (!selectedAppointment) return;
@@ -308,44 +347,8 @@ const AdminDashboard = () => {
 
   // Get available time slots based on selected date and doctor type (for admin edit)
   // excludeAppointmentId: when editing, don't exclude this appointment's own time
-  const getAvailableTimeSlots = (selectedDate, doctorType, excludeAppointmentId) => {
-    const timeSlots = [
-      { value: '09:00', label: '9:00 AM', hour: 9, minute: 0 },
-      { value: '09:15', label: '9:15 AM', hour: 9, minute: 15 },
-      { value: '09:30', label: '9:30 AM', hour: 9, minute: 30 },
-      { value: '09:45', label: '9:45 AM', hour: 9, minute: 45 },
-      { value: '10:00', label: '10:00 AM', hour: 10, minute: 0 },
-      { value: '10:15', label: '10:15 AM', hour: 10, minute: 15 },
-      { value: '10:30', label: '10:30 AM', hour: 10, minute: 30 },
-      { value: '10:45', label: '10:45 AM', hour: 10, minute: 45 },
-      { value: '11:00', label: '11:00 AM', hour: 11, minute: 0 },
-      { value: '11:15', label: '11:15 AM', hour: 11, minute: 15 },
-      { value: '11:30', label: '11:30 AM', hour: 11, minute: 30 },
-      { value: '12:00', label: '12:00 PM (Noon)', hour: 12, minute: 0 },
-      { value: '12:15', label: '12:15 PM', hour: 12, minute: 15 },
-      { value: '12:30', label: '12:30 PM', hour: 12, minute: 30 },
-      { value: '12:45', label: '12:45 PM', hour: 12, minute: 45 },
-      { value: '13:00', label: '1:00 PM', hour: 13, minute: 0 },
-      { value: '13:15', label: '1:15 PM', hour: 13, minute: 15 },
-      { value: '13:30', label: '1:30 PM', hour: 13, minute: 30 },
-      { value: '13:45', label: '1:45 PM', hour: 13, minute: 45 },
-      { value: '14:00', label: '2:00 PM', hour: 14, minute: 0 },
-      { value: '14:15', label: '2:15 PM', hour: 14, minute: 15 },
-      { value: '14:30', label: '2:30 PM', hour: 14, minute: 30 },
-      { value: '15:00', label: '3:00 PM', hour: 15, minute: 0 },
-      { value: '15:15', label: '3:15 PM', hour: 15, minute: 15 },
-      { value: '15:30', label: '3:30 PM', hour: 15, minute: 30 },
-      { value: '15:45', label: '3:45 PM', hour: 15, minute: 45 },
-      { value: '16:00', label: '4:00 PM', hour: 16, minute: 0 },
-      { value: '16:15', label: '4:15 PM', hour: 16, minute: 15 },
-      { value: '16:30', label: '4:30 PM', hour: 16, minute: 30 },
-      { value: '16:45', label: '4:45 PM', hour: 16, minute: 45 },
-      { value: '17:00', label: '5:00 PM', hour: 17, minute: 0 },
-      { value: '17:15', label: '5:15 PM', hour: 17, minute: 15 },
-      { value: '17:30', label: '5:30 PM', hour: 17, minute: 30 },
-      { value: '17:45', label: '5:45 PM', hour: 17, minute: 45 },
-      { value: '18:00', label: '6:00 PM', hour: 18, minute: 0 },
-    ];
+  const getAvailableTimeSlots = useCallback((selectedDate, doctorType, excludeAppointmentId) => {
+    const timeSlots = TIME_SLOTS;
 
     if (!selectedDate) {
       return timeSlots; // Show all if no date selected
@@ -392,7 +395,7 @@ const AdminDashboard = () => {
     }
 
     return excludeBooked(timeSlots);
-  };
+  }, []);
 
   const handleRestoreFromBackup = async (e) => {
     const file = e?.target?.files?.[0];
@@ -431,7 +434,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const openModal = (appointment) => {
+  const openModal = useCallback((appointment) => {
     setSelectedAppointment(appointment);
     const period = appointment.period || (appointment.time && parseInt(appointment.time.split(':')[0]) >= 12 ? 'PM' : 'AM') || 'AM';
     resetUpdate({
@@ -444,7 +447,7 @@ const AdminDashboard = () => {
       address: appointment.address ?? ''
     });
     setShowModal(true);
-  };
+  }, [resetUpdate]);
 
   const setFollowUp = async (days) => {
     if (!selectedAppointment) return;
@@ -544,7 +547,7 @@ const AdminDashboard = () => {
       const isTimeValid = availableSlots.some(slot => slot.value === watchedAddTime);
       if (!isTimeValid) setAddValue('time', '');
     }
-  }, [watchedAddDate, watchedAddTime, watchedAddService, setAddValue]);
+  }, [watchedAddDate, watchedAddTime, watchedAddService, setAddValue, getAvailableTimeSlots]);
 
   // Reset time when date changes if it's no longer valid
   useEffect(() => {
@@ -560,7 +563,7 @@ const AdminDashboard = () => {
         setUpdateValue('time', '');
       }
     }
-  }, [watchedUpdateDate, watchedUpdateTime, selectedAppointment, setUpdateValue]);
+  }, [watchedUpdateDate, watchedUpdateTime, selectedAppointment, setUpdateValue, getAvailableTimeSlots]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -592,20 +595,24 @@ const AdminDashboard = () => {
     }
   };
 
-  const filteredAppointments = appointments.filter(apt => 
-    searchTerm === '' || 
+  const filteredAppointments = useMemo(() => appointments.filter(apt =>
+    searchTerm === '' ||
     apt.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     apt.phone.includes(searchTerm) ||
     apt.service.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ), [appointments, searchTerm]);
 
   // Pagination calculations
-  const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedAppointments = filteredAppointments.slice(startIndex, endIndex);
-  const startItem = filteredAppointments.length > 0 ? startIndex + 1 : 0;
-  const endItem = Math.min(endIndex, filteredAppointments.length);
+  const totalPages = useMemo(() => Math.ceil(filteredAppointments.length / itemsPerPage), [filteredAppointments.length, itemsPerPage]);
+  const { paginatedAppointments, startItem, endItem } = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return {
+      paginatedAppointments: filteredAppointments.slice(startIndex, endIndex),
+      startItem: filteredAppointments.length > 0 ? startIndex + 1 : 0,
+      endItem: Math.min(endIndex, filteredAppointments.length),
+    };
+  }, [filteredAppointments, currentPage, itemsPerPage]);
 
   // Pagination handlers
   const goToPage = (page) => {
@@ -621,7 +628,7 @@ const AdminDashboard = () => {
   const goToNextPage = () => goToPage(currentPage + 1);
 
   // Generate page numbers to display
-  const getPageNumbers = () => {
+  const getPageNumbers = useCallback(() => {
     const pages = [];
     const maxVisiblePages = 5;
     
@@ -653,7 +660,7 @@ const AdminDashboard = () => {
     }
     
     return pages;
-  };
+  }, [totalPages, currentPage]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50">
@@ -888,73 +895,77 @@ const AdminDashboard = () => {
             </div>
 
             {/* Filter Tabs and Export - Responsive */}
-            <div className="flex flex-wrap gap-2 items-center">
-              <FaFilter className="text-gray-400 mr-1 sm:mr-2 text-sm sm:text-base" />
-              {['all', 'pending', 'confirmed', 'cancelled', 'completed'].map((status) => (
+            <div className="flex flex-col gap-2">
+              {/* Filter pills row */}
+              <div className="flex flex-wrap gap-2 items-center">
+                <FaFilter className="text-gray-400 text-sm" />
+                {['all', 'pending', 'confirmed', 'cancelled', 'completed'].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setFilter(status)}
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all duration-300 ${
+                      filter === status
+                        ? 'bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-lg'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </button>
+                ))}
+              </div>
+              {/* Action buttons row */}
+              <div className="flex flex-wrap gap-2">
                 <button
-                  key={status}
-                  onClick={() => setFilter(status)}
-                  className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl font-semibold text-xs sm:text-sm transition-all duration-300 transform hover:scale-105 ${
-                    filter === status
-                      ? 'bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-lg'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                  onClick={openAddModal}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-primary-600 hover:bg-primary-700 text-white transition-all"
                 >
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                  <FaPlus />
+                  Add Appointment
                 </button>
-              ))}
-              <button
-                onClick={openAddModal}
-                className="ml-auto px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-semibold text-xs sm:text-sm bg-primary-600 hover:bg-primary-700 text-white transition-all flex items-center gap-1.5"
-              >
-                <FaPlus className="text-sm" />
-                Add Appointment
-              </button>
-              <button
-                onClick={() => {
-                  downloadAppointmentsExcel(filter !== 'all' ? { status: filter } : {});
-                  toast.success('Appointments exported to Excel (date-wise sheets)', {
-                    position: 'top-right',
-                    autoClose: 3000,
-                  });
-                }}
-                className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-semibold text-xs sm:text-sm bg-green-600 hover:bg-green-700 text-white transition-all flex items-center gap-1.5"
-              >
-                <FaFileExcel className="text-sm" />
-                Export Excel
-              </button>
+                <button
+                  onClick={() => {
+                    downloadAppointmentsExcel(filter !== 'all' ? { status: filter } : {});
+                    toast.success('Appointments exported to Excel (date-wise sheets)', { position: 'top-right', autoClose: 3000 });
+                  }}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-green-600 hover:bg-green-700 text-white transition-all"
+                >
+                  <FaFileExcel />
+                  Export Excel
+                </button>
+              </div>
             </div>
 
             {/* Day & Month Backup */}
-            <div className="flex flex-wrap gap-3 sm:gap-4 items-center pt-2 border-t border-gray-100 mt-2">
+            <div className="flex flex-col gap-3 pt-2 border-t border-gray-100 mt-2">
               <span className="text-xs sm:text-sm font-semibold text-gray-600">Backup:</span>
+              {/* Day backup */}
               <div className="flex flex-wrap gap-2 items-center">
+                <span className="text-xs text-gray-500 w-12">Day:</span>
                 <input
                   type="date"
                   value={backupDay}
                   onChange={(e) => setBackupDay(e.target.value)}
-                  className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm"
+                  className="flex-1 min-w-0 px-2 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm"
                 />
                 <button
                   onClick={() => {
                     downloadDayBackup(backupDay);
-                    toast.success(`Day backup (${backupDay}) downloaded`, {
-                      position: 'top-right',
-                      autoClose: 3000,
-                    });
+                    toast.success(`Day backup (${backupDay}) downloaded`, { position: 'top-right', autoClose: 3000 });
                   }}
-                  className="px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white"
+                  className="px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap"
                 >
                   Day Backup
                 </button>
               </div>
+              {/* Month backup */}
               <div className="flex flex-wrap gap-2 items-center">
+                <span className="text-xs text-gray-500 w-12">Month:</span>
                 <select
                   value={backupMonth}
                   onChange={(e) => setBackupMonth(Number(e.target.value))}
-                  className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm"
+                  className="flex-1 min-w-0 px-2 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm"
                 >
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
+                  {[1,2,3,4,5,6,7,8,9,10,11,12].map((m) => (
                     <option key={m} value={m}>
                       {new Date(2000, m - 1).toLocaleString('default', { month: 'short' })} ({m})
                     </option>
@@ -972,68 +983,51 @@ const AdminDashboard = () => {
                 <button
                   onClick={() => {
                     downloadMonthBackup(backupYear, backupMonth);
-                    toast.success(`Month backup (${backupYear}-${String(backupMonth).padStart(2, '0')}) downloaded`, {
-                      position: 'top-right',
-                      autoClose: 3000,
-                    });
+                    toast.success(`Month backup (${backupYear}-${String(backupMonth).padStart(2, '0')}) downloaded`, { position: 'top-right', autoClose: 3000 });
                   }}
-                  className="px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm bg-indigo-600 hover:bg-indigo-700 text-white"
+                  className="px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap"
                 >
                   Month Backup
                 </button>
               </div>
             </div>
             {/* Full backup & restore – use when switching browser */}
-            <div className="flex flex-wrap gap-3 sm:gap-4 items-center pt-2 border-t border-amber-100 mt-2">
-              <span className="text-xs sm:text-sm font-semibold text-amber-800">Switch browser?</span>
-              <button
-                type="button"
-                onClick={() => {
-                  downloadFullBackup();
-                  toast.success('Full backup downloaded. Save this file and use Restore in the new browser.', {
-                    position: 'top-right',
-                    autoClose: 4000,
-                  });
-                }}
-                className="px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm bg-amber-600 hover:bg-amber-700 text-white flex items-center gap-1.5"
-              >
-                <FaFileDownload className="text-sm" />
-                Download full backup
-              </button>
-              <input
-                ref={restoreInputRef}
-                type="file"
-                accept=".json,application/json"
-                onChange={handleRestoreFromBackup}
-                className="hidden"
-              />
-              <button
-                type="button"
-                disabled={restoring}
-                onClick={() => restoreInputRef.current?.click()}
-                className="px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm bg-amber-700 hover:bg-amber-800 disabled:opacity-50 text-white flex items-center gap-1.5"
-              >
-                <FaUpload className="text-sm" />
-                {restoring ? 'Restoring…' : 'Restore from backup (.json)'}
-              </button>
-              {/* Import from Excel */}
-              <input
-                ref={restoreExcelInputRef}
-                type="file"
-                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                onChange={handleRestoreFromExcel}
-                className="hidden"
-              />
-              <button
-                type="button"
-                disabled={restoring}
-                onClick={() => restoreExcelInputRef.current?.click()}
-                className="px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white flex items-center gap-1.5"
-                title="Import appointments from a previously exported Excel (.xlsx) file. Merges data — no duplicates."
-              >
-                <FaFileExcel className="text-sm" />
-                {restoring ? 'Importing…' : 'Import from Excel (.xlsx)'}
-              </button>
+            <div className="flex flex-col gap-2 pt-2 border-t border-amber-100 mt-2">
+              <span className="text-xs sm:text-sm font-semibold text-amber-800">Switch browser / device:</span>
+              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    downloadFullBackup();
+                    toast.success('Full backup downloaded. Save this file and use Restore in the new browser.', { position: 'top-right', autoClose: 4000 });
+                  }}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  <FaFileDownload />
+                  Full Backup
+                </button>
+                <input ref={restoreInputRef} type="file" accept=".json,application/json" onChange={handleRestoreFromBackup} className="hidden" />
+                <button
+                  type="button"
+                  disabled={restoring}
+                  onClick={() => restoreInputRef.current?.click()}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-amber-700 hover:bg-amber-800 disabled:opacity-50 text-white"
+                >
+                  <FaUpload />
+                  {restoring ? 'Restoring…' : 'Restore (.json)'}
+                </button>
+                <input ref={restoreExcelInputRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleRestoreFromExcel} className="hidden" />
+                <button
+                  type="button"
+                  disabled={restoring}
+                  onClick={() => restoreExcelInputRef.current?.click()}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white xs:col-span-2 sm:col-span-1"
+                  title="Import from exported Excel file. Merges data — no duplicates."
+                >
+                  <FaFileExcel />
+                  {restoring ? 'Importing…' : 'Import Excel'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1198,25 +1192,24 @@ const AdminDashboard = () => {
                     className="bg-white border-2 border-gray-200 rounded-xl p-4 shadow-lg hover:shadow-xl transition-all duration-300"
                   >
                     {/* Patient Info */}
-                    <div className="flex items-start justify-between mb-4 pb-4 border-b border-gray-200">
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="flex-shrink-0 h-12 w-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center shadow-lg">
-                          <FaUser className="text-white text-lg" />
+                    <div className="flex items-start justify-between gap-2 mb-3 pb-3 border-b border-gray-200">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center shadow">
+                          <FaUser className="text-white text-sm" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-base font-bold text-gray-900 truncate">{appointment.name}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-bold text-gray-900 truncate">{appointment.name}</div>
                           {appointment.email && (
-                            <div className="text-xs text-gray-500 flex items-center gap-1 mt-1 truncate">
+                            <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5 min-w-0">
                               <FaEnvelope className="text-xs flex-shrink-0" />
                               <span className="truncate">{appointment.email}</span>
                             </div>
                           )}
                         </div>
                       </div>
-                      <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold shadow-md border-2 flex-shrink-0 ${getStatusColor(appointment.status)}`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold border-2 flex-shrink-0 whitespace-nowrap ${getStatusColor(appointment.status)}`}>
                         {getStatusIcon(appointment.status)}
-                        <span className="hidden xs:inline">{appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}</span>
-                        <span className="xs:hidden">{appointment.status.charAt(0).toUpperCase()}</span>
+                        <span className="hidden sm:inline">{appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}</span>
                       </span>
                     </div>
 
@@ -1261,26 +1254,33 @@ const AdminDashboard = () => {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2 pt-4 border-t border-gray-200">
+                    <div className="grid grid-cols-2 gap-2 pt-3 border-t border-gray-200">
                       <button
                         onClick={() => setSlipAppointment(appointment)}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-all duration-200 font-semibold text-sm"
+                        className="flex items-center justify-center gap-1.5 px-2 py-2.5 min-h-[40px] bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-all font-semibold text-xs"
                       >
-                        <FaPrint />
+                        <FaPrint className="flex-shrink-0" />
                         <span>Print Slip</span>
                       </button>
                       <button
                         onClick={() => openModal(appointment)}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-100 text-primary-600 rounded-lg hover:bg-primary-200 transition-all duration-200 font-semibold text-sm"
+                        className="flex items-center justify-center gap-1.5 px-2 py-2.5 min-h-[40px] bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-all font-semibold text-xs"
                       >
-                        <FaEdit />
+                        <FaEdit className="flex-shrink-0" />
                         <span>Edit</span>
                       </button>
                       <button
-                        onClick={() => deleteAppointment(appointment.id)}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all duration-200 font-semibold text-sm"
+                        onClick={() => updateAppointmentStatus(appointment.id, 'confirmed')}
+                        className="flex items-center justify-center gap-1.5 px-2 py-2.5 min-h-[40px] bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-all font-semibold text-xs"
                       >
-                        <FaTrash />
+                        <FaCheckCircle className="flex-shrink-0" />
+                        <span>Confirm</span>
+                      </button>
+                      <button
+                        onClick={() => deleteAppointment(appointment.id)}
+                        className="flex items-center justify-center gap-1.5 px-2 py-2.5 min-h-[40px] bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-all font-semibold text-xs"
+                      >
+                        <FaTrash className="flex-shrink-0" />
                         <span>Delete</span>
                       </button>
                     </div>
@@ -1292,19 +1292,20 @@ const AdminDashboard = () => {
 
           {/* Pagination Controls */}
           {filteredAppointments.length > 0 && (
-            <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 mt-4 sm:mt-6 border border-gray-100">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                {/* Items per page selector and info */}
-                <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-3 sm:p-6 mt-4 sm:mt-6 border border-gray-100">
+              <div className="flex flex-col gap-3">
+                {/* Info + items per page */}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs sm:text-sm text-gray-600">
+                    Showing <span className="font-semibold text-gray-900">{startItem}</span>–<span className="font-semibold text-gray-900">{endItem}</span> of{' '}
+                    <span className="font-semibold text-gray-900">{filteredAppointments.length}</span>
+                  </div>
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Items per page:</label>
+                    <label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">Per page:</label>
                     <select
                       value={itemsPerPage}
-                      onChange={(e) => {
-                        setItemsPerPage(Number(e.target.value));
-                        setCurrentPage(1);
-                      }}
-                      className="px-3 py-1.5 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none text-sm font-medium bg-white"
+                      onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                      className="px-2 py-1.5 border-2 border-gray-300 rounded-lg focus:border-primary-500 outline-none text-xs sm:text-sm font-medium bg-white"
                     >
                       <option value={5}>5</option>
                       <option value={10}>10</option>
@@ -1312,89 +1313,40 @@ const AdminDashboard = () => {
                       <option value={50}>50</option>
                     </select>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    Showing <span className="font-semibold text-gray-900">{startItem}</span> to{' '}
-                    <span className="font-semibold text-gray-900">{endItem}</span> of{' '}
-                    <span className="font-semibold text-gray-900">{filteredAppointments.length}</span> appointments
-                  </div>
                 </div>
-
-                {/* Pagination buttons */}
-                <div className="flex items-center gap-2">
-                  {/* First page button */}
-                  <button
-                    onClick={goToFirstPage}
-                    disabled={currentPage === 1}
-                    className="px-3 py-2 rounded-lg border-2 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:transform-none text-sm font-semibold"
-                    title="First page"
-                  >
-                    ««
+                {/* Page buttons */}
+                <div className="flex items-center justify-center gap-1 sm:gap-2 flex-wrap">
+                  <button onClick={goToFirstPage} disabled={currentPage === 1}
+                    className="hidden sm:block px-2 py-1.5 rounded-lg border-2 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold"
+                    title="First page">««</button>
+                  <button onClick={goToPreviousPage} disabled={currentPage === 1}
+                    className="p-2 rounded-lg border-2 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Previous">
+                    <FaChevronLeft className="text-xs sm:text-sm" />
                   </button>
-
-                  {/* Previous page button */}
-                  <button
-                    onClick={goToPreviousPage}
-                    disabled={currentPage === 1}
-                    className="p-2 rounded-lg border-2 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:transform-none"
-                    title="Previous page"
-                  >
-                    <FaChevronLeft className="text-sm" />
-                  </button>
-
-                  {/* Page numbers */}
-                  <div className="flex items-center gap-1 sm:gap-2">
-                    {getPageNumbers().map((page, index) => {
-                      if (page === 'ellipsis') {
-                        return (
-                          <span key={`ellipsis-${index}`} className="px-2 text-gray-500">
-                            ...
-                          </span>
-                        );
-                      }
-                      return (
-                        <button
-                          key={page}
-                          onClick={() => goToPage(page)}
-                          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-sm transition-all duration-200 transform hover:scale-105 ${
+                  <div className="flex items-center gap-1">
+                    {getPageNumbers().map((page, index) =>
+                      page === 'ellipsis' ? (
+                        <span key={`e-${index}`} className="px-1 text-gray-400 text-xs">…</span>
+                      ) : (
+                        <button key={page} onClick={() => goToPage(page)}
+                          className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg font-semibold text-xs sm:text-sm transition-all ${
                             currentPage === page
-                              ? 'bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-lg scale-105'
+                              ? 'bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-lg'
                               : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      );
-                    })}
+                          }`}>{page}</button>
+                      )
+                    )}
                   </div>
-
-                  {/* Next page button */}
-                  <button
-                    onClick={goToNextPage}
-                    disabled={currentPage === totalPages}
-                    className="p-2 rounded-lg border-2 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:transform-none"
-                    title="Next page"
-                  >
-                    <FaChevronRight className="text-sm" />
+                  <button onClick={goToNextPage} disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg border-2 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Next">
+                    <FaChevronRight className="text-xs sm:text-sm" />
                   </button>
-
-                  {/* Last page button */}
-                  <button
-                    onClick={goToLastPage}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-2 rounded-lg border-2 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:transform-none text-sm font-semibold"
-                    title="Last page"
-                  >
-                    »»
-                  </button>
+                  <button onClick={goToLastPage} disabled={currentPage === totalPages}
+                    className="hidden sm:block px-2 py-1.5 rounded-lg border-2 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold"
+                    title="Last page">»»</button>
                 </div>
-              </div>
-
-              {/* Page info for mobile */}
-              <div className="mt-4 pt-4 border-t border-gray-200 text-center sm:hidden">
-                <p className="text-sm text-gray-600">
-                  Page <span className="font-semibold text-gray-900">{currentPage}</span> of{' '}
-                  <span className="font-semibold text-gray-900">{totalPages}</span>
-                </p>
               </div>
             </div>
           )}

@@ -1,60 +1,67 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import SeoHead from './SeoHead';
 import { getClinic, getDoctors, getServices } from '../services/localStorageApi';
-import { FaPhone, FaStethoscope, FaUserMd, FaCalendarAlt, FaCheckCircle, FaArrowDown, FaHeartbeat, FaShieldAlt, FaAward, FaHospital, FaCalculator } from 'react-icons/fa';
-import BeforeAfterCarousel from './BeforeAfterCarousel';
-import TreatmentPhotosCarousel from './TreatmentPhotosCarousel';
+import { FaPhone, FaWhatsapp, FaStethoscope, FaUserMd, FaCalendarAlt, FaCheckCircle, FaArrowDown, FaHeartbeat, FaShieldAlt, FaAward, FaHospital, FaCalculator } from 'react-icons/fa';
 import { endocrinologistGallery, dermatologistGallery, generalTreatmentPhotos } from '../data/beforeAfterData';
-import BMICalculator from './BMICalculator';
-import DiabeticCalculator from './DiabeticCalculator';
-import BSACalculator from './BSACalculator';
-import IdealWeightCalculator from './IdealWeightCalculator';
-import WaterIntakeCalculator from './WaterIntakeCalculator';
-import ThyroidTSHCalculator from './ThyroidTSHCalculator';
-import CalorieBMRCalculator from './CalorieBMRCalculator';
-import WaistHipCalculator from './WaistHipCalculator';
-import FitzpatrickQuiz from './FitzpatrickQuiz';
-import HealthMeasureGuide from './HealthMeasureGuide';
+
+// Lazy-load heavy below-the-fold components (carousels + all calculators)
+// They are only downloaded when the browser is idle / user scrolls down
+const BeforeAfterCarousel     = lazy(() => import('./BeforeAfterCarousel'));
+const TreatmentPhotosCarousel = lazy(() => import('./TreatmentPhotosCarousel'));
+const BMICalculator           = lazy(() => import('./BMICalculator'));
+const DiabeticCalculator      = lazy(() => import('./DiabeticCalculator'));
+const BSACalculator           = lazy(() => import('./BSACalculator'));
+const IdealWeightCalculator   = lazy(() => import('./IdealWeightCalculator'));
+const WaterIntakeCalculator   = lazy(() => import('./WaterIntakeCalculator'));
+const ThyroidTSHCalculator    = lazy(() => import('./ThyroidTSHCalculator'));
+const CalorieBMRCalculator    = lazy(() => import('./CalorieBMRCalculator'));
+const WaistHipCalculator      = lazy(() => import('./WaistHipCalculator'));
+const FitzpatrickQuiz         = lazy(() => import('./FitzpatrickQuiz'));
+const HealthMeasureGuide      = lazy(() => import('./HealthMeasureGuide'));
+
+// Lightweight spinner shown while lazy chunks load
+function SectionLoader() {
+  return (
+    <div className="flex items-center justify-center py-16">
+      <div className="w-10 h-10 border-4 border-primary-400 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
+
+// WhatsApp booking message (module-level constant — never changes)
+const WA_MSG = encodeURIComponent('नमस्ते! मुझे Sattva Hospital में अपॉइंटमेंट बुक करनी है।');
 
 const LandingPage = () => {
   const [clinicData, setClinicData] = useState(null);
   const [doctors, setDoctors] = useState([]);
   const [services, setServices] = useState(null);
 
-  useEffect(() => {
-    fetchClinicData();
-    fetchDoctors();
-    fetchServices();
+  // Fetch all data in a single parallel call — avoids 3 sequential renders
+  const fetchAllData = useCallback(async () => {
+    try {
+      const [clinic, doctorList, serviceData] = await Promise.all([
+        getClinic(),
+        getDoctors(),
+        getServices(),
+      ]);
+      setClinicData(clinic);
+      setDoctors(doctorList);
+      setServices(serviceData);
+    } catch (error) {
+      console.error('Error fetching landing page data:', error);
+    }
   }, []);
 
-  const fetchClinicData = async () => {
-    try {
-      const data = await getClinic();
-      setClinicData(data);
-    } catch (error) {
-      console.error('Error fetching clinic data:', error);
-    }
-  };
+  useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData]);
 
-  const fetchDoctors = async () => {
-    try {
-      const data = await getDoctors();
-      setDoctors(data);
-    } catch (error) {
-      console.error('Error fetching doctors:', error);
-    }
-  };
+  // Memoize phone numbers so they don't recalculate on every render
+  const phone1 = useMemo(() => clinicData?.contact?.phone1 || '9131960802', [clinicData]);
+  const phone2 = useMemo(() => clinicData?.contact?.phone2 || '9340633407', [clinicData]);
+  const wa1 = useMemo(() => `https://wa.me/91${phone1}?text=${WA_MSG}`, [phone1]);
+  const wa2 = useMemo(() => `https://wa.me/91${phone2}?text=${WA_MSG}`, [phone2]);
 
-  const fetchServices = async () => {
-    try {
-      const data = await getServices();
-      setServices(data);
-    } catch (error) {
-      console.error('Error fetching services:', error);
-    }
-  };
-
-  // Get available time slots based on selected date
   return (
     <div className="min-h-screen bg-gray-50" role="document">
       <SeoHead clinic={clinicData} />
@@ -207,29 +214,41 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Enhanced Contact Bar - Responsive */}
-      <header id="contact" role="banner" aria-label="Contact information" className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white py-3 sm:py-4 md:py-5 sticky top-0 z-50 shadow-2xl border-b border-white/10 backdrop-blur-md">
+      {/* Sticky Contact Bar */}
+      <header id="contact" role="banner" aria-label="Contact information" className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white py-3 sm:py-4 sticky top-0 z-50 shadow-2xl border-b border-white/10 backdrop-blur-md">
         <div className="container mx-auto px-3 sm:px-4">
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-6 md:gap-10">
-            <a 
-              href={`tel:${clinicData?.contact?.phone1 || '9131960802'}`} 
-              className="group flex items-center gap-2 sm:gap-3 px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 md:py-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20 hover:bg-white/20 hover:border-white/40 transition-all duration-300 transform hover:scale-105 shadow-lg w-full sm:w-auto justify-center"
-            >
-              <div className="p-1.5 sm:p-2 bg-primary-500 rounded-full group-hover:bg-primary-400 transition-colors">
-                <FaPhone className="text-white text-xs sm:text-sm" />
+          <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-4">
+
+            {/* Doctor 1 — Call + WhatsApp */}
+            <a href={`tel:${phone1}`}
+              className="group flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/10 rounded-full border border-white/20 hover:bg-white/20 transition-all text-xs sm:text-sm font-semibold">
+              <div className="p-1 sm:p-1.5 bg-primary-500 rounded-full">
+                <FaPhone className="text-white text-xs" />
               </div>
-              <span className="font-semibold text-sm sm:text-base">{clinicData?.contact?.phone1 || '9131960802'}</span>
+              <span>{phone1}</span>
             </a>
-            <div className="hidden sm:block w-px h-6 md:h-8 bg-gradient-to-b from-transparent via-white/30 to-transparent"></div>
-            <a 
-              href={`tel:${clinicData?.contact?.phone2 || '9340633407'}`} 
-              className="group flex items-center gap-2 sm:gap-3 px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 md:py-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20 hover:bg-white/20 hover:border-white/40 transition-all duration-300 transform hover:scale-105 shadow-lg w-full sm:w-auto justify-center"
-            >
-              <div className="p-1.5 sm:p-2 bg-secondary-500 rounded-full group-hover:bg-secondary-400 transition-colors">
-                <FaPhone className="text-white text-xs sm:text-sm" />
+            <a href={wa1} target="_blank" rel="noopener noreferrer"
+              className="group flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-600/80 hover:bg-green-500 rounded-full border border-green-400/40 transition-all text-xs sm:text-sm font-semibold">
+              <FaWhatsapp className="text-white text-sm sm:text-base" />
+              <span className="hidden xs:inline">WhatsApp</span>
+            </a>
+
+            <div className="hidden sm:block w-px h-6 bg-white/20"></div>
+
+            {/* Doctor 2 — Call + WhatsApp */}
+            <a href={`tel:${phone2}`}
+              className="group flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/10 rounded-full border border-white/20 hover:bg-white/20 transition-all text-xs sm:text-sm font-semibold">
+              <div className="p-1 sm:p-1.5 bg-secondary-500 rounded-full">
+                <FaPhone className="text-white text-xs" />
               </div>
-              <span className="font-semibold text-sm sm:text-base">{clinicData?.contact?.phone2 || '9340633407'}</span>
+              <span>{phone2}</span>
             </a>
+            <a href={wa2} target="_blank" rel="noopener noreferrer"
+              className="group flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-600/80 hover:bg-green-500 rounded-full border border-green-400/40 transition-all text-xs sm:text-sm font-semibold">
+              <FaWhatsapp className="text-white text-sm sm:text-base" />
+              <span className="hidden xs:inline">WhatsApp</span>
+            </a>
+
           </div>
         </div>
       </header>
@@ -378,26 +397,32 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 sm:gap-12 md:gap-16 max-w-7xl mx-auto">
             {/* Endocrinologist */}
             <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl p-2 sm:p-3 shadow-xl border border-primary-200/50">
-              <BeforeAfterCarousel
-                items={endocrinologistGallery}
-                sectionTitle="Endocrinology & Diabetes Care"
-                accentColor="primary"
-              />
+              <Suspense fallback={<SectionLoader />}>
+                <BeforeAfterCarousel
+                  items={endocrinologistGallery}
+                  sectionTitle="Endocrinology & Diabetes Care"
+                  accentColor="primary"
+                />
+              </Suspense>
             </div>
             {/* Dermatologist */}
             <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl p-2 sm:p-3 shadow-xl border border-secondary-200/50">
-              <BeforeAfterCarousel
-                items={dermatologistGallery}
-                sectionTitle="Dermatology & Skin Care"
-                accentColor="secondary"
-              />
+              <Suspense fallback={<SectionLoader />}>
+                <BeforeAfterCarousel
+                  items={dermatologistGallery}
+                  sectionTitle="Dermatology & Skin Care"
+                  accentColor="secondary"
+                />
+              </Suspense>
             </div>
           </div>
         </div>
 
         {/* Full-width auto-scroll carousel: general treatment photos (breaks out of container) */}
         <div className="mt-12 sm:mt-16 md:mt-20 w-full">
-          <TreatmentPhotosCarousel items={generalTreatmentPhotos} />
+          <Suspense fallback={<SectionLoader />}>
+            <TreatmentPhotosCarousel items={generalTreatmentPhotos} />
+          </Suspense>
         </div>
       </section>
 
@@ -508,18 +533,20 @@ const LandingPage = () => {
               Use these calculators for quick health checks. For accurate assessment, book an appointment with our specialists.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8 md:gap-10 max-w-7xl mx-auto">
-            <BMICalculator />
-            <DiabeticCalculator />
-            <BSACalculator />
-            <IdealWeightCalculator />
-            <WaterIntakeCalculator />
-            <ThyroidTSHCalculator />
-            <CalorieBMRCalculator />
-            <WaistHipCalculator />
-            <FitzpatrickQuiz />
-          </div>
-          <HealthMeasureGuide />
+          <Suspense fallback={<SectionLoader />}>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8 md:gap-10 max-w-7xl mx-auto">
+              <BMICalculator />
+              <DiabeticCalculator />
+              <BSACalculator />
+              <IdealWeightCalculator />
+              <WaterIntakeCalculator />
+              <ThyroidTSHCalculator />
+              <CalorieBMRCalculator />
+              <WaistHipCalculator />
+              <FitzpatrickQuiz />
+            </div>
+            <HealthMeasureGuide />
+          </Suspense>
           <div className="text-center mt-8 sm:mt-10">
             <a 
               href="#appointment" 
@@ -553,21 +580,43 @@ const LandingPage = () => {
             Call us or visit the hospital to schedule your visit with our specialists.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
-            <a
-              href={`tel:${clinicData?.contact?.phone1 || '9131960802'}`}
-              className="inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-white text-primary-700 rounded-xl font-bold text-base sm:text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300"
-            >
-              <FaPhone className="text-xl sm:text-2xl" />
-              <span>{clinicData?.contact?.phone1 || '9131960802'}</span>
-            </a>
-            {clinicData?.contact?.phone2 && (
+            {/* Phone + WhatsApp for phone1 */}
+            <div className="flex gap-2 w-full sm:w-auto">
               <a
-                href={`tel:${clinicData.contact.phone2}`}
-                className="inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-white/20 backdrop-blur-md text-white border-2 border-white/50 rounded-xl font-bold text-base sm:text-lg hover:bg-white/30 transition-all duration-300"
+                href={`tel:${phone1}`}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 sm:px-7 py-3 sm:py-4 bg-white text-primary-700 rounded-xl font-bold text-sm sm:text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300"
               >
-                <FaPhone className="text-xl sm:text-2xl" />
-                <span>{clinicData.contact.phone2}</span>
+                <FaPhone className="text-lg sm:text-xl" />
+                <span>{phone1}</span>
               </a>
+              <a
+                href={wa1}
+                target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-4 py-3 sm:py-4 bg-green-500 hover:bg-green-400 text-white rounded-xl font-bold text-sm sm:text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300"
+                title="Book on WhatsApp"
+              >
+                <FaWhatsapp className="text-xl sm:text-2xl" />
+              </a>
+            </div>
+            {/* Phone + WhatsApp for phone2 */}
+            {clinicData?.contact?.phone2 && (
+              <div className="flex gap-2 w-full sm:w-auto">
+                <a
+                  href={`tel:${phone2}`}
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 sm:px-7 py-3 sm:py-4 bg-white/20 backdrop-blur-md text-white border-2 border-white/50 rounded-xl font-bold text-sm sm:text-lg hover:bg-white/30 transition-all duration-300"
+                >
+                  <FaPhone className="text-lg sm:text-xl" />
+                  <span>{phone2}</span>
+                </a>
+                <a
+                  href={wa2}
+                  target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-3 sm:py-4 bg-green-500 hover:bg-green-400 text-white rounded-xl font-bold text-sm sm:text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300"
+                  title="Book on WhatsApp"
+                >
+                  <FaWhatsapp className="text-xl sm:text-2xl" />
+                </a>
+              </div>
             )}
           </div>
           <p className="text-white/80 text-sm sm:text-base mt-6">
@@ -577,6 +626,18 @@ const LandingPage = () => {
       </section>
 
       </main>
+
+      {/* Floating WhatsApp Button */}
+      <a
+        href={wa1}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Book appointment on WhatsApp"
+        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-400 text-white rounded-full shadow-2xl hover:shadow-green-400/50 hover:scale-110 transition-all duration-300 group"
+      >
+        <FaWhatsapp className="text-2xl" />
+        <span className="text-sm font-bold hidden group-hover:inline-block overflow-hidden max-w-0 group-hover:max-w-xs transition-all duration-300 whitespace-nowrap">Book Appointment</span>
+      </a>
 
       {/* Enhanced Footer - Responsive */}
       <footer role="contentinfo" aria-label="Site footer" className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white py-10 sm:py-12 md:py-16 overflow-hidden">
@@ -615,25 +676,25 @@ const LandingPage = () => {
               </h4>
               <div className="space-y-3 sm:space-y-4">
                 <a 
-                  href={`tel:${clinicData?.contact?.phone1 || '9131960802'}`}
+                  href={`tel:${phone1}`}
                   className="group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/5 backdrop-blur-sm rounded-lg sm:rounded-xl border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300 transform hover:scale-105"
                 >
                   <div className="p-2 sm:p-3 bg-primary-500 rounded-lg sm:rounded-xl group-hover:bg-primary-400 transition-colors">
                     <FaPhone className="text-white text-sm sm:text-base" />
                   </div>
                   <span className="text-base sm:text-lg font-semibold group-hover:text-primary-300 transition-colors">
-                    {clinicData?.contact?.phone1 || '9131960802'}
+                    {phone1}
                   </span>
                 </a>
                 <a 
-                  href={`tel:${clinicData?.contact?.phone2 || '9340633407'}`}
+                  href={`tel:${phone2}`}
                   className="group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/5 backdrop-blur-sm rounded-lg sm:rounded-xl border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300 transform hover:scale-105"
                 >
                   <div className="p-2 sm:p-3 bg-secondary-500 rounded-lg sm:rounded-xl group-hover:bg-secondary-400 transition-colors">
                     <FaPhone className="text-white text-sm sm:text-base" />
                   </div>
                   <span className="text-base sm:text-lg font-semibold group-hover:text-secondary-300 transition-colors">
-                    {clinicData?.contact?.phone2 || '9340633407'}
+                    {phone2}
                   </span>
                 </a>
               </div>
