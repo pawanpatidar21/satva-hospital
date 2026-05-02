@@ -272,12 +272,16 @@ const AdminDashboard = () => {
         }
     }, [fetchAppointments, fetchStats]);
 
-    const deleteAppointment = useCallback(async (id) => {
+    const confirmDeleteIdRef = useRef(null);
+
+    const deleteAppointment = useCallback((id) => {
+        confirmDeleteIdRef.current = id;
         setConfirmDeleteId(id);
     }, []);
 
     const confirmDeleteAppointment = useCallback(async () => {
-        const id = confirmDeleteId;
+        const id = confirmDeleteIdRef.current;
+        confirmDeleteIdRef.current = null;
         setConfirmDeleteId(null);
         if (!id) return;
         try {
@@ -295,7 +299,7 @@ const AdminDashboard = () => {
                 autoClose: 3000,
             });
         }
-    }, [confirmDeleteId, fetchAppointments, fetchStats]);
+    }, [fetchAppointments, fetchStats]);
 
     const onUpdateNotes = async (data) => {
         if (!selectedAppointment) return;
