@@ -408,13 +408,13 @@ export function getAdminAppointments(filters = {}) {
 
 export function getAppointmentById(id) {
   const list = getAppointmentsList();
-  const appointment = list.find((a) => a.id === parseInt(id, 10));
+  const appointment = list.find((a) => String(a.id) === String(id));
   return Promise.resolve(appointment ? { success: true, appointment } : null);
 }
 
 export function updateAppointment(id, data) {
   const list = getAppointmentsList();
-  const index = list.findIndex((a) => a.id === parseInt(id, 10));
+  const index = list.findIndex((a) => String(a.id) === String(id));
   if (index === -1) return Promise.resolve(null);
   list[index] = {
     ...list[index],
