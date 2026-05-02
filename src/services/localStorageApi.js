@@ -349,8 +349,7 @@ export function createAppointment(data) {
       },
     });
   }
-    // const id = getNextId(STORAGE_KEYS.NEXT_APPOINTMENT_ID);
-  const id = uuidv4(); // Use UUID for appointment ID to avoid collisions in multi-device scenarios
+  const id = uuidv4();
   const now = new Date().toISOString();
   const appointment = {
     id,
@@ -428,7 +427,7 @@ export function updateAppointment(id, data) {
 
 export function deleteAppointment(id) {
   const list = getAppointmentsList();
-  const index = list.findIndex((a) => a.id === parseInt(id, 10));
+  const index = list.findIndex((a) => String(a.id) === String(id));
   if (index === -1) return Promise.resolve(null);
   list.splice(index, 1);
   saveAppointments(list);
