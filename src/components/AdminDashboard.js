@@ -102,7 +102,7 @@ const AdminDashboard = () => {
     const [backupMonth, setBackupMonth] = useState(new Date().getMonth() + 1);
     const [backupYear, setBackupYear] = useState(new Date().getFullYear());
     const [appointments, setAppointments] = useState([]);
-    const [stats, setStats] = useState(null);
+    const [stats, setStats] = useState({});
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
     const [selectedAppointment, setSelectedAppointment] = useState(null);
@@ -121,6 +121,9 @@ const AdminDashboard = () => {
     const [followUpDate, setFollowUpDate] = useState(new Date().toISOString().slice(0, 10));
     const [followUpsList, setFollowUpsList] = useState([]);
     const [followUpsLoading, setFollowUpsLoading] = useState(false);
+    const [followUpMode, setFollowUpMode] = useState('days'); // 'days' | 'custom'
+    const [customFollowUpInput, setCustomFollowUpInput] = useState('');
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null); // id pending delete confirmation
 
     const {
         register: registerUpdate,
@@ -270,9 +273,13 @@ const AdminDashboard = () => {
     }, [fetchAppointments, fetchStats]);
 
     const deleteAppointment = useCallback(async (id) => {
-        if (!window.confirm('Are you sure you want to delete this appointment?')) {
-            return;
-        }
+        setConfirmDeleteId(id);
+    }, []);
+
+    const confirmDeleteAppointment = useCallback(async () => {
+        const id = confirmDeleteId;
+        setConfirmDeleteId(null);
+        if (!id) return;
         try {
             await deleteAppointmentApi(id);
             toast.success('Appointment deleted successfully', {
@@ -288,7 +295,7 @@ const AdminDashboard = () => {
                 autoClose: 3000,
             });
         }
-    }, [fetchAppointments, fetchStats]);
+    }, [confirmDeleteId, fetchAppointments, fetchStats]);
 
     const onUpdateNotes = async (data) => {
         if (!selectedAppointment) return;
@@ -453,6 +460,17 @@ const AdminDashboard = () => {
             sex: appointment.sex ?? '',
             address: appointment.address ?? ''
         });
+        // Determine initial follow-up mode
+        if (appointment.followUpDays != null && appointment.followUpDays !== '') {
+            setFollowUpMode('days');
+            setCustomFollowUpInput('');
+        } else if (appointment.followUpDate) {
+            setFollowUpMode('custom');
+            setCustomFollowUpInput(appointment.followUpDate);
+        } else {
+            setFollowUpMode('days');
+            setCustomFollowUpInput('');
+        }
         setShowModal(true);
     }, [resetUpdate]);
 
@@ -471,6 +489,25 @@ const AdminDashboard = () => {
             toast.success(
                 computedFollowUpDate
                     ? `Follow-up set for ${new Date(computedFollowUpDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                    : 'Follow-up removed',
+                { position: 'top-right', autoClose: 3000 }
+            );
+        } catch (e) {
+            toast.error('Failed to update follow-up', { position: 'top-right', autoClose: 3000 });
+        }
+    };
+
+    const setFollowUpCustomDate = async (dateStr) => {
+        if (!selectedAppointment) return;
+        const cleanDate = dateStr || null;
+        try {
+            await updateAppointment(selectedAppointment.id, { followUpDate: cleanDate, followUpDays: null });
+            setSelectedAppointment((prev) => (prev ? { ...prev, followUpDate: cleanDate, followUpDays: null } : null));
+            await fetchFollowUps(followUpDate);
+            fetchAppointments();
+            toast.success(
+                cleanDate
+                    ? `Follow-up set for ${new Date(cleanDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
                     : 'Follow-up removed',
                 { position: 'top-right', autoClose: 3000 }
             );
@@ -825,7 +862,18 @@ const AdminDashboard = () => {
                                             <td className="px-4 py-3">
                                                 <span className="font-medium text-gray-900">{apt.phone}</span>
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 truncate max-w-[200px]">{apt.service}</td>
+                                            <td className="px-4 py-3 max-w-[200px]">
+                                                <span className="text-sm text-gray-700 block truncate">{apt.service}</span>
+                                                {(() => {
+                                                    const type = getServiceDoctorType(apt.service);
+                                                    const doc = doctors.find((d) => d.type === type);
+                                                    return type ? (
+                                                        <span className="text-xs text-primary-600 font-semibold block truncate">
+                                                            {doc ? doc.englishName : type}
+                                                        </span>
+                                                    ) : null;
+                                                })()}
+                                            </td>
                                             <td className="px-4 py-3 text-sm text-gray-600">
                                                 {apt.date ? new Date(apt.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                                             </td>
@@ -907,138 +955,180 @@ const AdminDashboard = () => {
                                     </div>
                                     <input
                                         type="text"
-                                        placeholder="Search appointments..."
+                                        placeholder="Search by name, phone, or service..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all text-sm sm:text-base"
+                                        className="w-full pl-10 sm:pl-12 pr-10 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all text-sm sm:text-base"
                                     />
+                                    {searchTerm && (
+                                        <button
+                                            onClick={() => setSearchTerm('')}
+                                            className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                                            title="Clear search"
+                                        >
+                                            <FaTimesCircle className="text-sm sm:text-base" />
+                                        </button>
+                                    )}
                                 </div>
 
-                                {/* Filter Tabs and Export - Responsive */}
-                                <div className="flex flex-col gap-2">
-                                    {/* Filter pills row */}
-                                    <div className="flex flex-wrap gap-2 items-center">
-                                        <FaFilter className="text-gray-400 text-sm" />
-                                        {['all', 'pending', 'confirmed', 'cancelled', 'completed'].map((status) => (
+                                {/* Filter pills + Export — single row */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <FaFilter className="text-gray-400 text-sm flex-shrink-0" />
+                                    {['all', 'pending', 'confirmed', 'cancelled', 'completed'].map((status) => {
+                                        const countMap = { all: stats?.total, pending: stats?.pending, confirmed: stats?.confirmed, cancelled: stats?.cancelled, completed: stats?.completed };
+                                        const count = countMap[status];
+                                        return (
                                             <button
                                                 key={status}
                                                 onClick={() => setFilter(status)}
-                                                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all duration-300 ${filter === status
+                                                className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all duration-300 ${filter === status
                                                         ? 'bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-lg'
                                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                     }`}
                                             >
                                                 {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                {count != null && (
+                                                    <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-none ${filter === status ? 'bg-white/30 text-white' : 'bg-gray-300 text-gray-700'
+                                                        }`}>{count}</span>
+                                                )}
                                             </button>
-                                        ))}
-                                    </div>
-                                    {/* Export button row */}
-                                    <div className="flex flex-wrap gap-2">
+                                        );
+                                    })}
+                                    {/* Export button — sits at the end of the filter row */}
+                                    <div className="ml-auto">
                                         <button
                                             onClick={() => {
                                                 downloadAppointmentsExcel(filter !== 'all' ? { status: filter } : {});
                                                 toast.success('Appointments exported to Excel (date-wise sheets)', { position: 'top-right', autoClose: 3000 });
                                             }}
-                                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-green-600 hover:bg-green-700 text-white transition-all"
+                                            className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm bg-green-600 hover:bg-green-700 text-white transition-all whitespace-nowrap"
                                         >
                                             <FaFileExcel />
                                             Export Excel
                                         </button>
                                     </div>
                                 </div>
+                                {/* ── Backup & Restore Section ── */}
+                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="p-1.5 bg-blue-100 rounded-lg">
+                                            <FaFileDownload className="text-blue-600 text-sm" />
+                                        </div>
+                                        <span className="text-sm font-bold text-gray-700 uppercase tracking-wide">Backup & Restore</span>
+                                    </div>
 
-                                {/* Day & Month Backup */}
-                                <div className="flex flex-col gap-3 pt-2 border-t border-gray-100 mt-2">
-                                    <span className="text-xs sm:text-sm font-semibold text-gray-600">Backup:</span>
-                                    {/* Day backup */}
-                                    <div className="flex flex-wrap gap-2 items-center">
-                                        <span className="text-xs text-gray-500 w-12">Day:</span>
-                                        <input
-                                            type="date"
-                                            value={backupDay}
-                                            onChange={(e) => setBackupDay(e.target.value)}
-                                            className="flex-1 min-w-0 px-2 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm"
-                                        />
-                                        <button
-                                            onClick={() => {
-                                                downloadDayBackup(backupDay);
-                                                toast.success(`Day backup (${backupDay}) downloaded`, { position: 'top-right', autoClose: 3000 });
-                                            }}
-                                            className="px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap"
-                                        >
-                                            Day Backup
-                                        </button>
-                                    </div>
-                                    {/* Month backup */}
-                                    <div className="flex flex-wrap gap-2 items-center">
-                                        <span className="text-xs text-gray-500 w-12">Month:</span>
-                                        <select
-                                            value={backupMonth}
-                                            onChange={(e) => setBackupMonth(Number(e.target.value))}
-                                            className="flex-1 min-w-0 px-2 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm"
-                                        >
-                                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
-                                                <option key={m} value={m}>
-                                                    {new Date(2000, m - 1).toLocaleString('default', { month: 'short' })} ({m})
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <select
-                                            value={backupYear}
-                                            onChange={(e) => setBackupYear(Number(e.target.value))}
-                                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm"
-                                        >
-                                            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
-                                                <option key={y} value={y}>{y}</option>
-                                            ))}
-                                        </select>
-                                        <button
-                                            onClick={() => {
-                                                downloadMonthBackup(backupYear, backupMonth);
-                                                toast.success(`Month backup (${backupYear}-${String(backupMonth).padStart(2, '0')}) downloaded`, { position: 'top-right', autoClose: 3000 });
-                                            }}
-                                            className="px-3 py-1.5 rounded-lg font-semibold text-xs sm:text-sm bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap"
-                                        >
-                                            Month Backup
-                                        </button>
-                                    </div>
-                                </div>
-                                {/* Full backup & restore – use when switching browser */}
-                                <div className="flex flex-col gap-2 pt-2 border-t border-amber-100 mt-2">
-                                    <span className="text-xs sm:text-sm font-semibold text-amber-800">Switch browser / device:</span>
-                                    <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                downloadFullBackup();
-                                                toast.success('Full backup downloaded. Save this file and use Restore in the new browser.', { position: 'top-right', autoClose: 4000 });
-                                            }}
-                                            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-amber-600 hover:bg-amber-700 text-white"
-                                        >
-                                            <FaFileDownload />
-                                            Full Backup
-                                        </button>
-                                        <input ref={restoreInputRef} type="file" accept=".json,application/json" onChange={handleRestoreFromBackup} className="hidden" />
-                                        <button
-                                            type="button"
-                                            disabled={restoring}
-                                            onClick={() => restoreInputRef.current?.click()}
-                                            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-amber-700 hover:bg-amber-800 disabled:opacity-50 text-white"
-                                        >
-                                            <FaUpload />
-                                            {restoring ? 'Restoring…' : 'Restore (.json)'}
-                                        </button>
-                                        <input ref={restoreExcelInputRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleRestoreFromExcel} className="hidden" />
-                                        <button
-                                            type="button"
-                                            disabled={restoring}
-                                            onClick={() => restoreExcelInputRef.current?.click()}
-                                            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white xs:col-span-2 sm:col-span-1"
-                                            title="Import from exported Excel file. Merges data — no duplicates."
-                                        >
-                                            <FaFileExcel />
-                                            {restoring ? 'Importing…' : 'Import Excel'}
-                                        </button>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+                                        {/* Day Backup Card */}
+                                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-3 flex flex-col gap-2">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div className="p-1.5 bg-blue-500 rounded-lg">
+                                                    <FaCalendarAlt className="text-white text-xs" />
+                                                </div>
+                                                <span className="text-xs font-bold text-blue-800 uppercase tracking-wide">Day Backup</span>
+                                            </div>
+                                            <input
+                                                type="date"
+                                                value={backupDay}
+                                                onChange={(e) => setBackupDay(e.target.value)}
+                                                className="w-full px-2 py-1.5 border border-blue-200 rounded-lg text-xs sm:text-sm bg-white focus:border-blue-400 outline-none"
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    downloadDayBackup(backupDay);
+                                                    toast.success(`Day backup (${backupDay}) downloaded`, { position: 'top-right', autoClose: 3000 });
+                                                }}
+                                                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white transition-all hover:shadow-md"
+                                            >
+                                                <FaFileDownload className="text-xs" />
+                                                Download Day
+                                            </button>
+                                        </div>
+
+                                        {/* Month Backup Card */}
+                                        <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl p-3 flex flex-col gap-2">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div className="p-1.5 bg-indigo-500 rounded-lg">
+                                                    <FaChartBar className="text-white text-xs" />
+                                                </div>
+                                                <span className="text-xs font-bold text-indigo-800 uppercase tracking-wide">Month Backup</span>
+                                            </div>
+                                            <div className="flex gap-1.5">
+                                                <SearchableSelect
+                                                    size="sm"
+                                                    options={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => ({
+                                                        value: String(m),
+                                                        label: new Date(2000, m - 1).toLocaleString('default', { month: 'long' }),
+                                                    }))}
+                                                    value={String(backupMonth)}
+                                                    onChange={(v) => setBackupMonth(Number(v))}
+                                                    placeholder="Month"
+                                                />
+                                                <SearchableSelect
+                                                    size="sm"
+                                                    options={Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => ({
+                                                        value: String(y),
+                                                        label: String(y),
+                                                    }))}
+                                                    value={String(backupYear)}
+                                                    onChange={(v) => setBackupYear(Number(v))}
+                                                    placeholder="Year"
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    downloadMonthBackup(backupYear, backupMonth);
+                                                    toast.success(`Month backup (${backupYear}-${String(backupMonth).padStart(2, '0')}) downloaded`, { position: 'top-right', autoClose: 3000 });
+                                                }}
+                                                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white transition-all hover:shadow-md"
+                                            >
+                                                <FaFileDownload className="text-xs" />
+                                                Download Month
+                                            </button>
+                                        </div>
+
+                                        {/* Full Backup / Restore / Import Card */}
+                                        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-3 flex flex-col gap-2">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div className="p-1.5 bg-amber-500 rounded-lg">
+                                                    <FaHospital className="text-white text-xs" />
+                                                </div>
+                                                <span className="text-xs font-bold text-amber-800 uppercase tracking-wide">Switch Device</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    downloadFullBackup();
+                                                    toast.success('Full backup downloaded. Use Restore in new browser.', { position: 'top-right', autoClose: 4000 });
+                                                }}
+                                                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-bold text-xs bg-amber-600 hover:bg-amber-700 text-white transition-all hover:shadow-md"
+                                            >
+                                                <FaFileDownload className="text-xs" />
+                                                Full Backup (.json)
+                                            </button>
+                                            <input ref={restoreInputRef} type="file" accept=".json,application/json" onChange={handleRestoreFromBackup} className="hidden" />
+                                            <button
+                                                type="button"
+                                                disabled={restoring}
+                                                onClick={() => restoreInputRef.current?.click()}
+                                                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-bold text-xs bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white transition-all hover:shadow-md"
+                                            >
+                                                <FaUpload className="text-xs" />
+                                                {restoring ? 'Restoring…' : 'Restore (.json)'}
+                                            </button>
+                                            <input ref={restoreExcelInputRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleRestoreFromExcel} className="hidden" />
+                                            <button
+                                                type="button"
+                                                disabled={restoring}
+                                                onClick={() => restoreExcelInputRef.current?.click()}
+                                                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-bold text-xs bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white transition-all hover:shadow-md"
+                                                title="Import from exported Excel file. Merges data — no duplicates."
+                                            >
+                                                <FaFileExcel className="text-xs" />
+                                                {restoring ? 'Importing…' : 'Import Excel (.xlsx)'}
+                                            </button>
+                                        </div>
+
                                     </div>
                                 </div>
                             </div>
@@ -1324,16 +1414,20 @@ const AdminDashboard = () => {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">Per page:</label>
-                                                <select
-                                                    value={itemsPerPage}
-                                                    onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                                                    className="px-2 py-1.5 border-2 border-gray-300 rounded-lg focus:border-primary-500 outline-none text-xs sm:text-sm font-medium bg-white"
-                                                >
-                                                    <option value={5}>5</option>
-                                                    <option value={10}>10</option>
-                                                    <option value={20}>20</option>
-                                                    <option value={50}>50</option>
-                                                </select>
+                                                <div className="w-24">
+                                                    <SearchableSelect
+                                                        size="sm"
+                                                        options={[
+                                                            { value: '5', label: '5 rows' },
+                                                            { value: '10', label: '10 rows' },
+                                                            { value: '20', label: '20 rows' },
+                                                            { value: '50', label: '50 rows' },
+                                                        ]}
+                                                        value={String(itemsPerPage)}
+                                                        onChange={(v) => { setItemsPerPage(Number(v)); setCurrentPage(1); }}
+                                                        placeholder="Rows"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                         {/* Page buttons */}
@@ -1448,16 +1542,24 @@ const AdminDashboard = () => {
                                 </div>
                                 <div>
                                     <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Sex</label>
-                                    <select
-                                        {...registerAdd('sex')}
-                                        className={`w-full px-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base ${addErrors.sex ? 'border-red-500' : 'border-gray-300 focus:border-primary-500'
-                                            }`}
-                                    >
-                                        <option value="">Select</option>
-                                        <option value="Male">Male</option>
-                                        <option value="Female">Female</option>
-                                        <option value="Other">Other</option>
-                                    </select>
+                                    <Controller
+                                        name="sex"
+                                        control={controlAdd}
+                                        render={({ field }) => (
+                                            <SearchableSelect
+                                                size="sm"
+                                                options={[
+                                                    { value: 'Male', label: '👨 Male' },
+                                                    { value: 'Female', label: '👩 Female' },
+                                                    { value: 'Other', label: '🧑 Other' },
+                                                ]}
+                                                value={field.value}
+                                                onChange={field.onChange}
+                                                placeholder="Select sex..."
+                                                error={!!addErrors.sex}
+                                            />
+                                        )}
+                                    />
                                     {addErrors.sex && <p className="text-xs text-red-500 mt-1">{addErrors.sex.message}</p>}
                                 </div>
                                 <div className="md:col-span-2">
@@ -1473,27 +1575,24 @@ const AdminDashboard = () => {
                                 </div>
                                 <div>
                                     <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Service <span className="text-red-500">*</span></label>
-                                    <select
-                                        {...registerAdd('service')}
-                                        className={`w-full px-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base ${addErrors.service ? 'border-red-500' : 'border-gray-300 focus:border-primary-500'
-                                            }`}
-                                    >
-                                        <option value="">Select a service</option>
-                                        {services?.endocrinology && (
-                                            <optgroup label="Endocrinology">
-                                                {services.endocrinology.map((s, i) => (
-                                                    <option key={`endo-${i}`} value={s}>{s}</option>
-                                                ))}
-                                            </optgroup>
+                                    <Controller
+                                        name="service"
+                                        control={controlAdd}
+                                        render={({ field }) => (
+                                            <SearchableSelect
+                                                size="sm"
+                                                options={[
+                                                    ...(services?.endocrinology ? [{ label: '🩺 Endocrinology', options: services.endocrinology.map(s => ({ value: s, label: s })) }] : []),
+                                                    ...(services?.dermatology ? [{ label: '✨ Dermatology', options: services.dermatology.map(s => ({ value: s, label: s })) }] : []),
+                                                ]}
+                                                value={field.value}
+                                                onChange={field.onChange}
+                                                placeholder="Search & select a service..."
+                                                isGrouped={true}
+                                                error={!!addErrors.service}
+                                            />
                                         )}
-                                        {services?.dermatology && (
-                                            <optgroup label="Dermatology">
-                                                {services.dermatology.map((s, i) => (
-                                                    <option key={`derm-${i}`} value={s}>{s}</option>
-                                                ))}
-                                            </optgroup>
-                                        )}
-                                    </select>
+                                    />
                                     {addErrors.service && <p className="text-xs text-red-500 mt-1">{addErrors.service.message}</p>}
                                 </div>
                                 <div>
@@ -1523,6 +1622,7 @@ const AdminDashboard = () => {
                                             if (eveningSlots.length > 0) timeOptions.push({ label: 'Evening (3:00 PM - 6:00 PM)', options: eveningSlots.map(s => ({ value: s.value, label: s.label })) });
                                             return (
                                                 <SearchableSelect
+                                                    size="sm"
                                                     options={timeOptions}
                                                     value={field.value}
                                                     onChange={(value) => {
@@ -1549,6 +1649,7 @@ const AdminDashboard = () => {
                                         control={controlAdd}
                                         render={({ field }) => (
                                             <SearchableSelect
+                                                size="sm"
                                                 options={[{ value: 'AM', label: 'AM' }, { value: 'PM', label: 'PM' }]}
                                                 value={field.value}
                                                 onChange={field.onChange}
@@ -1562,15 +1663,24 @@ const AdminDashboard = () => {
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Status</label>
-                                    <select
-                                        {...registerAdd('status')}
-                                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base"
-                                    >
-                                        <option value="pending">Pending</option>
-                                        <option value="confirmed">Confirmed</option>
-                                        <option value="cancelled">Cancelled</option>
-                                        <option value="completed">Completed</option>
-                                    </select>
+                                    <Controller
+                                        name="status"
+                                        control={controlAdd}
+                                        render={({ field }) => (
+                                            <SearchableSelect
+                                                size="sm"
+                                                options={[
+                                                    { value: 'pending', label: '🕐 Pending' },
+                                                    { value: 'confirmed', label: '✅ Confirmed' },
+                                                    { value: 'cancelled', label: '❌ Cancelled' },
+                                                    { value: 'completed', label: '🏁 Completed' },
+                                                ]}
+                                                value={field.value}
+                                                onChange={field.onChange}
+                                                placeholder="Select status..."
+                                            />
+                                        )}
+                                    />
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Message (Optional)</label>
@@ -1661,15 +1771,23 @@ const AdminDashboard = () => {
                                         </div>
                                         <div>
                                             <label className="block text-xs font-semibold text-gray-600 mb-2">Sex</label>
-                                            <select
-                                                {...registerUpdate('sex')}
-                                                className="w-full px-3 py-2 border-2 rounded-lg focus:ring-2 focus:ring-primary-200 outline-none text-sm sm:text-base border-gray-300 focus:border-primary-500"
-                                            >
-                                                <option value="">Select</option>
-                                                <option value="Male">Male</option>
-                                                <option value="Female">Female</option>
-                                                <option value="Other">Other</option>
-                                            </select>
+                                            <Controller
+                                                name="sex"
+                                                control={controlUpdate}
+                                                render={({ field }) => (
+                                                    <SearchableSelect
+                                                        size="sm"
+                                                        options={[
+                                                            { value: 'Male', label: '👨 Male' },
+                                                            { value: 'Female', label: '👩 Female' },
+                                                            { value: 'Other', label: '🧑 Other' },
+                                                        ]}
+                                                        value={field.value}
+                                                        onChange={field.onChange}
+                                                        placeholder="Select sex..."
+                                                    />
+                                                )}
+                                            />
                                         </div>
                                     </div>
                                     <div className="mb-3">
@@ -1777,6 +1895,7 @@ const AdminDashboard = () => {
 
                                                     return (
                                                         <SearchableSelect
+                                                            size="sm"
                                                             options={timeOptions}
                                                             value={field.value}
                                                             onChange={(value) => {
@@ -1814,6 +1933,7 @@ const AdminDashboard = () => {
                                                 control={controlUpdate}
                                                 render={({ field }) => (
                                                     <SearchableSelect
+                                                        size="sm"
                                                         options={[
                                                             { value: 'AM', label: 'AM' },
                                                             { value: 'PM', label: 'PM' }
@@ -1871,28 +1991,89 @@ const AdminDashboard = () => {
 
                             {/* Follow-up - Set next follow-up date */}
                             <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-4 sm:p-5 md:p-6 rounded-lg sm:rounded-xl border border-amber-200">
-                                <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide flex items-center gap-2">
-                                    <FaBell className="text-amber-600" />
-                                    Follow-up after visit
-                                </label>
-                                <p className="text-xs text-gray-600 mb-3">Set when the patient should be reminded for a follow-up. They will appear in &quot;Follow-Up Reminders&quot; on that date.</p>
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <select
-                                        value={selectedAppointment.followUpDays ?? ''}
-                                        onChange={(e) => setFollowUp(e.target.value)}
-                                        className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none text-sm font-medium bg-white min-w-[140px]"
-                                    >
-                                        <option value="">None</option>
-                                        {FOLLOW_UP_DAYS_OPTIONS.map((d) => (
-                                            <option key={d} value={d}>{d} days</option>
-                                        ))}
-                                    </select>
+                                {/* Header */}
+                                <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                                    <label className="text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                                        <FaBell className="text-amber-600" />
+                                        Follow-up after visit
+                                    </label>
                                     {selectedAppointment.followUpDate && (
-                                        <span className="text-sm text-amber-800 font-medium">
-                                            Next follow-up: {new Date(selectedAppointment.followUpDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-300/60 text-amber-900 rounded-full text-xs font-semibold">
+                                            <FaBell className="text-amber-700 text-[10px]" />
+                                            {new Date(selectedAppointment.followUpDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                                         </span>
                                     )}
                                 </div>
+                                <p className="text-xs text-gray-600 mb-3">Set when the patient should be reminded for a follow-up. They will appear in &quot;Follow-Up Reminders&quot; on that date.</p>
+
+                                {/* Mode toggle */}
+                                <div className="flex gap-1 p-1 bg-amber-200/50 rounded-lg mb-4 w-fit">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFollowUpMode('days')}
+                                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${followUpMode === 'days' ? 'bg-white text-amber-800 shadow-sm' : 'text-amber-700 hover:text-amber-900'
+                                            }`}
+                                    >
+                                        📅 After Visit (days)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFollowUpMode('custom')}
+                                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${followUpMode === 'custom' ? 'bg-white text-amber-800 shadow-sm' : 'text-amber-700 hover:text-amber-900'
+                                            }`}
+                                    >
+                                        🗓️ Pick a Date
+                                    </button>
+                                </div>
+
+                                {followUpMode === 'days' ? (
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <div className="min-w-[160px]">
+                                            <SearchableSelect
+                                                size="sm"
+                                                options={[
+                                                    { value: '', label: '— None —' },
+                                                    ...FOLLOW_UP_DAYS_OPTIONS.map((d) => ({ value: String(d), label: `${d} days` })),
+                                                ]}
+                                                value={selectedAppointment.followUpDays != null && selectedAppointment.followUpDays !== '' ? String(selectedAppointment.followUpDays) : ''}
+                                                onChange={(v) => setFollowUp(v)}
+                                                placeholder="Select days..."
+                                            />
+                                        </div>
+                                        {selectedAppointment.followUpDays != null && selectedAppointment.date && (
+                                            <span className="text-xs text-gray-500">
+                                                (visit {new Date(selectedAppointment.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} + {selectedAppointment.followUpDays}d)
+                                            </span>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <input
+                                            type="date"
+                                            value={customFollowUpInput}
+                                            min={new Date().toISOString().slice(0, 10)}
+                                            onChange={(e) => setCustomFollowUpInput(e.target.value)}
+                                            className="px-3 py-2 border-2 border-amber-300 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-sm font-medium bg-white"
+                                        />
+                                        <button
+                                            type="button"
+                                            disabled={!customFollowUpInput}
+                                            onClick={() => setFollowUpCustomDate(customFollowUpInput)}
+                                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-sm font-semibold transition-all"
+                                        >
+                                            Set Date
+                                        </button>
+                                        {selectedAppointment.followUpDate && (
+                                            <button
+                                                type="button"
+                                                onClick={() => { setCustomFollowUpInput(''); setFollowUpCustomDate(''); }}
+                                                className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-semibold transition-all"
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Notes Section - Responsive */}
@@ -1925,6 +2106,38 @@ const AdminDashboard = () => {
                                 className="px-6 sm:px-8 py-2.5 sm:py-3 bg-gray-200 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-300 transition-all duration-300 transform hover:scale-105 font-semibold text-sm sm:text-base"
                             >
                                 Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Confirm Delete Modal ── */}
+            {confirmDeleteId && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 bg-red-100 rounded-full">
+                                <FaTrash className="text-red-600 text-lg" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-gray-900">Delete Appointment</h3>
+                                <p className="text-sm text-gray-500 mt-0.5">This action cannot be undone.</p>
+                            </div>
+                        </div>
+                        <p className="text-sm text-gray-700">Are you sure you want to permanently delete this appointment?</p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDeleteAppointment}
+                                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-sm transition-all"
+                            >
+                                Yes, Delete
                             </button>
                         </div>
                     </div>
